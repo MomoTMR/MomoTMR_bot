@@ -1,5 +1,9 @@
-venv/
+.env
+.idea/
 __pycache__/
 *.pyc
+.venv/
 openai-token.txt
-.env
+user_photo.jpg
+*.swp
+
