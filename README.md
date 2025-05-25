@@ -1,2 +1,2 @@
-# MomoTMR_bot
-Telegram bot for JavaRushSchool
+# TelegramBot _ MOMOTMR
+` Telegram-bot`с интегррованным `ChatGPT`
