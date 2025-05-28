@@ -3,6 +3,7 @@
 __pycache__/
 *.pyc
 .venv/
+.idea/
 openai-token.txt
 user_photo.jpg
 *.swp
