@@ -29,7 +29,6 @@ def main():
         application.add_handler(start_handler)
 
         # Обработка кнопки `random`
-        application.add_handler(CommandHandler("random", random_fact.random_fact))
         application.add_handler(CallbackQueryHandler(random_fact.random_fact_callback, pattern="^random_"))
 
         # Обработчик кнопок "МЕНЮ"
@@ -38,7 +37,7 @@ def main():
         # Запуск обработчика событий
         application.run_polling()
     except Exception as e:
-        logger,error('Ошибка при запуске', e)
+        logger.error('Ошибка при запуске', e)
 
 if __name__ == '__main__':
     main()
