@@ -19,7 +19,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_markup
         [InlineKeyboardButton("🤖 ChatGPT (скоро)", callback_data="gpt_coming_soon")],
         [InlineKeyboardButton("👥 Диалог с личностью (скоро)", callback_data="talk_coming_soon")],
         [InlineKeyboardButton("🧠 Квиз (скоро)", callback_data="quiz_coming_soon")],
-        ]
+    ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     welcome_text = (
@@ -38,7 +38,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Обработка нажатий")
     query = update.callback_query
     await query.answer()
-
+    if query.data in ["gpt_coming_soon", "talk_coming_soon", "quiz_coming_soon"]:
         await query.edit_message_text(
             "🚧 <b>Функция в разработке!</b>\n\n"
             "Эта функция будет добавлена на следующих уроках.\n"
