@@ -1,8 +1,8 @@
 import logging
 import os
 from dotenv import load_dotenv
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
-from handlers import basic, random_fact
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ConversationHandler, MessageHandler, filters
+from handlers import basic, random_fact, chatgpt_interface
 
 #Включаем логирование.
 logging.basicConfig(
@@ -24,9 +24,34 @@ def main():
         # Инициализация TELEGRAM_TOKEN
         application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
-        # Обработка кнопки `start`
+        # Обработка команды `start`
         start_handler = CommandHandler('start', basic.start)
         application.add_handler(start_handler)
+
+        # Обработка команды `random`
+        application.add_handler(CommandHandler("random", random_fact.random_fact))
+
+        # Обработка команды `gpt`
+        application.add_handler(CommandHandler("gpt", chatgpt_interface.gpt_command))
+
+        # Обработка кнопки `gpt`
+        application.add_handler(CommandHandler("gpt", chatgpt_interface.gpt_command))
+
+        gpt_conversation = ConversationHandler(
+            entry_points=[CallbackQueryHandler(chatgpt_interface.gpt_start, pattern="^gpt_interface$")],
+            states={
+                chatgpt_interface.WAITING_FOR_MESSAGE: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, chatgpt_interface.handle_gpt_message)
+                ],
+            },
+            fallbacks=[
+                CommandHandler("start", basic.start),
+                CallbackQueryHandler(basic.menu_callback, pattern="^(gpt_finish|main_menu)$")
+            ],
+            #per_message=True
+        )
+
+        application.add_handler(gpt_conversation)
 
         # Обработка кнопки `random`
         application.add_handler(CallbackQueryHandler(random_fact.random_fact_callback, pattern="^random_"))
