@@ -71,3 +71,30 @@ async def get_chatgpt_response(user_message : str):
     except Exception as e:
         logger.error(f"Ошибка при получении ответа от OpenAI: {e}")
         return "😔 Извините, произошла ошибка при обращении к ChatGPT. Попробуйте позже!"
+
+async def get_personality_response(user_message: str, personality_prompt: str):
+    """Получить ответ от чата GPT"""
+    try:
+        respnse = await client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {
+                    "role": "system",
+                    "content": personality_prompt
+                },
+                {
+                    "role": "user",
+                    "content": user_message
+                }
+            ],
+            max_tokens=80,
+            temperature=0.8
+        )
+
+        answer = respnse.choices[0].message.content.strip()
+        logger.info("Ответ от личности успешно получен от OpenAI")
+        return answer
+
+    except Exception as e:
+        logger.error(f"Ошибка при получении ответа от личности: {e}")
+        return "😔 Извините, произошла ошибка при обращении к ChatGPT. Попробуйте позже!"

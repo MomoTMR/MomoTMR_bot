@@ -18,7 +18,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_markup
     keyboard = [
         [InlineKeyboardButton("🎲 Рандомный факт", callback_data="random_fact")],
         [InlineKeyboardButton("🤖 ChatGPT", callback_data="gpt_interface")],
-        [InlineKeyboardButton("👥 Диалог с личностью (скоро)", callback_data="talk_coming_soon")],
+        [InlineKeyboardButton("👥 Диалог с личностью", callback_data="talk_interface")],
         [InlineKeyboardButton("🧠 Квиз (скоро)", callback_data="quiz_coming_soon")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -39,7 +39,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("Обработка нажатий")
     query = update.callback_query
     await query.answer()
-    if query.data in ["talk_coming_soon", "quiz_coming_soon"]:
+    if query.data in ["quiz_coming_soon"]:
         await query.edit_message_text(
             "🚧 <b>Функция в разработке!</b>\n\n"
             "Эта функция будет добавлена на следующих уроках.\n"
@@ -56,7 +56,7 @@ async def start_menu_again(query):
     keyboard = [
         [InlineKeyboardButton("🎲 Рандомный факт", callback_data="random_fact")],
         [InlineKeyboardButton("🤖 ChatGPT", callback_data="gpt_interface")],
-        [InlineKeyboardButton("👥 Диалог с личностью (скоро)", callback_data="talk_coming_soon")],
+        [InlineKeyboardButton("👥 Диалог с личностью", callback_data="talk_interface")],
         [InlineKeyboardButton("🧠 Квиз (скоро)", callback_data="quiz_coming_soon")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
