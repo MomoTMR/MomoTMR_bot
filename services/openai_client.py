@@ -5,7 +5,7 @@ import os
 
 logger = logging.getLogger(__name__)
 
-# Подулючаем переменной из окружения ".env"
+# Подключаем переменной из окружения ".env"
 load_dotenv()
 
 CHATGPT_TOKEN = os.getenv("CHATGPT_TOKEN")
@@ -46,9 +46,10 @@ async def get_random_fact():
         return "🤔 К сожалению, не удалось получить факт в данный момент. Попробуйте позже!"
 
 async def get_chatgpt_response(user_message : str):
-    "Получение ответа на запрос пользоватля"
+    """Получение ответа на запрос пользоватля"""
+    logger.info(f"Запрос к OpenAI {user_message}")
     try:
-        respnse = await client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {
@@ -64,8 +65,9 @@ async def get_chatgpt_response(user_message : str):
             temperature=0.7
         )
 
-        answer = respnse.choices[0].message.content.strip()
+        answer = response.choices[0].message.content.strip()
         logger.info("Ответ успешно получен от OpenAI")
+
         return answer
 
     except Exception as e:

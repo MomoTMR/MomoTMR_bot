@@ -33,12 +33,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_markup
         "Выберите функцию из меню ниже:"
     )
     await update.message.reply_text(welcome_text, parse_mode='HTML', reply_markup=reply_markup)
+    #return ConversationHandler.END
 
 async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка нажатий кнопок главного меню"""
-    logger.info("Обработка нажатий")
     query = update.callback_query
+    logger.info(f"Получен Callback: {query.data}")
     await query.answer()
+
     if query.data in ["quiz_coming_soon"]:
         await query.edit_message_text(
             "🚧 <b>Функция в разработке!</b>\n\n"
@@ -48,6 +50,10 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         await asyncio.sleep(3)
+        await start_menu_again(query)
+
+    elif query.data in ["gpt_finish", "main_menu"]:
+        logger.info("gpt_finish, main_menu")
         await start_menu_again(query)
 
 async def start_menu_again(query):

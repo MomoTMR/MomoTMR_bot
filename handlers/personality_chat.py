@@ -1,10 +1,5 @@
 import logging
-from gc import callbacks
-from platform import processor
 
-from google.protobuf.internal.test_bad_identifiers_pb2 import message
-from oauthlib.uri_validate import query
-from pydantic.v1.class_validators import all_kwargs
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
 from telegram.ext import ContextTypes
 import os
@@ -173,17 +168,18 @@ async def handle_personality_callback(update: Update, context: ContextTypes.DEFA
                 "Напишите следующее сообщение",
                 parse_mode='HTML'
             )
-            return CHATING_WITH_PERSONALITY
-
-        elif query.data == "change_personality":
-            return await talk_start(update,context)
-
-        elif query.data == "finish_talk":
-            # Очищаем личности
-            context.user_data.pop('current_personality',None)
-            context.user_data.pop('personality_data',None)
-
-            from handlers.basic import start
-            await start(update,context)
-            return  -1
         return CHATING_WITH_PERSONALITY
+
+    elif query.data == "change_personality":
+        return await talk_start(update,context)
+
+    elif query.data == "finish_talk":
+        # Очищаем личности
+        context.user_data.pop('current_personality',None)
+        context.user_data.pop('personality_data',None)
+
+        from handlers.basic import start
+        await start(update,context)
+        return  -1
+
+    return CHATING_WITH_PERSONALITY

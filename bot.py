@@ -39,8 +39,11 @@ def main():
 
         application.add_handler(CallbackQueryHandler(random_fact.random_fact_callback, pattern="^random_"))
 
+        #Пеход в режим GPT
         gpt_conversation = ConversationHandler(
-            entry_points=[CallbackQueryHandler(chatgpt_interface.gpt_start, pattern="^gpt_interface$")],
+            entry_points=[
+                CommandHandler("gpt", chatgpt_interface.gpt_command),
+                CallbackQueryHandler(chatgpt_interface.gpt_start, pattern="^gpt_interface$")],
             states={
                 chatgpt_interface.WAITING_FOR_MESSAGE: [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, chatgpt_interface.handle_gpt_message)
@@ -48,31 +51,34 @@ def main():
             },
             fallbacks=[
                 CommandHandler("start", basic.start),
-                CallbackQueryHandler(basic.menu_callback, pattern="^(gpt_finish|main_menu)$")
+                CallbackQueryHandler(basic.menu_callback, pattern="^(gpt_finish|gpt_continue|main_menu)")
             ],
-            per_message=False
+            # per_message=False
         )
+
+        #Пеход в режим Personality
         personality_conversation = ConversationHandler(
             entry_points=[
                 CallbackQueryHandler(personality_chat.talk_start, pattern="^talk_interface$"),
-                CommandHandler("talk",personality_chat.talk_command)
+                CommandHandler("talk",personality_chat.talk_start)
             ],
             states={
-                personality_chat.CHATING_WITH_PERSONALITY: [
-                    CallbackQueryHandler(personality_chat.personality_selected,pattern="^_personality_")
-                ],
                 personality_chat.SELECTION_PERSONALITY: [
+                    CallbackQueryHandler(personality_chat.personality_selected,pattern="^personality_.*")
+                ],
+                personality_chat.CHATING_WITH_PERSONALITY: [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, personality_chat.handle_personality_message),
                     CallbackQueryHandler(personality_chat.handle_personality_callback,
-                                         pattern="^(continue_chat|change_personality|finish_talk)$")
+                                         pattern="^(continue_chat|finish_talk)$")
                 ],
             },
             fallbacks=[
                 CommandHandler("start", basic.start),
-                CallbackQueryHandler(basic.menu_callback, pattern="^main_menu$")
+                CallbackQueryHandler(basic.menu_callback, pattern="^main_menu")
             ],
-            per_message=False
+            # per_message=False
         )
+
         # Обработка кнопки `personality`
         application.add_handler(personality_conversation)
 
@@ -85,7 +91,7 @@ def main():
         # Запуск обработчика событий
         application.run_polling()
     except Exception as e:
-        logger.error(f'Ошибка при запуске, {e}')
+        logger.error(f"Ошибка при запуске бота: {e}", exc_info=True)
 
 if __name__ == '__main__':
     main()

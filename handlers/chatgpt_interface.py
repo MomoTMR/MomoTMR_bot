@@ -1,8 +1,6 @@
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
 from telegram.ext import ContextTypes
-
-from handlers import basic
 from services.openai_client import get_chatgpt_response
 import os
 
@@ -24,15 +22,19 @@ CAPTION = (
 
 
 async def gpt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка команды /gpt"""
+    logger.info("Запуск обработки GPT")
     await gpt_start(update, context)
 
 
 async def gpt_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
+        logger.info("Старт обработки GPT Response")
         image_path = "data/images/chatgpt.png"
         if os.path.exists(image_path):
             with open(image_path, 'rb') as photo:
                 if update.callback_query:
+                    await update.callback_query.delete_message()
                     await update.callback_query.message.reply_photo(
                         photo=photo,
                         caption=CAPTION,
@@ -40,6 +42,7 @@ async def gpt_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     )
 
                 else:
+                    await update.message.delete()
                     await update.message.reply_photo(
                         photo=photo,
                         caption=CAPTION,
@@ -72,6 +75,7 @@ async def gpt_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_gpt_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка сообщения пользователя для ChatGPT"""
+    logger.info(f"Запуск обработки сообщения для ChatGPT  {update.message.text}")
     try:
         user_message = update.message.text
 

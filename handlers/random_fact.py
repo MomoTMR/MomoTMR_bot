@@ -63,20 +63,6 @@ async def random_fact_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     elif query.data == "random_finish":
         logger.info("Обработка random_finish")
         await basic.start_menu_again(query)
-        # keyboard = [
-        #     [InlineKeyboardButton("🎲 Рандомный факт", callback_data="random_fact")],
-        #     [InlineKeyboardButton("🤖 ChatGPT (скоро)", callback_data="gpt_coming_soon")],
-        #     [InlineKeyboardButton("👥 Диалог с личностью (скоро)", callback_data="talk_coming_soon")],
-        #     [InlineKeyboardButton("🧠 Квиз (скоро)", callback_data="quiz_coming_soon")],
-        # ]
-        # reply_markup = InlineKeyboardMarkup(keyboard)
-        #
-        # await query.edit_message_text(
-        #     "🎉 <b>Добро пожаловать в ChatGPT бота!</b>\n\n"
-        #     "Выберите одну из доступных функций:",
-        #     parse_mode='HTML',
-        #     reply_markup=reply_markup
-        # )
 
     elif query.data == "random_fact":
         logger.info("Обработка random_fact")
