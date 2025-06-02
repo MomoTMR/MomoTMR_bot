@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 # Срабатывает каждый раз когда бот получает команду /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_markup=None):
-    logger.info("Start mode")
+    logger.info("Команда /start вызвана или fallback")
 
     """Обработка команды /start."""
     keyboard = [
@@ -32,15 +32,32 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_markup
         "• Квиз - проверь свои знания (в разработке)\n\n"
         "Выберите функцию из меню ниже:"
     )
-    await update.message.reply_text(welcome_text, parse_mode='HTML', reply_markup=reply_markup)
-    #return ConversationHandler.END
+    try:
+        if update.message:  # Вызов через команду или сообщение
+            await update.message.reply_text(welcome_text, parse_mode='HTML', reply_markup=reply_markup)
+        elif update.callback_query:  # Вызов через callback
+            query = update.callback_query
+            await query.message.delete()  # Удаляем сообщение с кнопкой
+            await context.bot.send_message(
+                chat_id=query.message.chat_id,
+                text=welcome_text,
+                parse_mode='HTML',
+                reply_markup=reply_markup
+            )
+            await query.answer()
+        return -1
+    except Exception as e:
+        logger.error(f"Ошибка в start: {e}", exc_info=True)
+        return -1
+    '''await update.message.reply_text(welcome_text, parse_mode='HTML', reply_markup=reply_markup)
+    return -1'''
 
 async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка нажатий кнопок главного меню"""
     query = update.callback_query
     logger.info(f"Получен Callback: {query.data}")
     await query.answer()
-
+    chat_id = update.callback_query.message.chat_id
     if query.data in ["quiz_coming_soon"]:
         await query.edit_message_text(
             "🚧 <b>Функция в разработке!</b>\n\n"
@@ -54,6 +71,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif query.data in ["gpt_finish", "main_menu"]:
         logger.info("gpt_finish, main_menu")
+        await query.message.delete()
         await start_menu_again(query)
 
 async def start_menu_again(query):

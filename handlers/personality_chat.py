@@ -110,6 +110,7 @@ async def personality_selected(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def handle_personality_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка сообщения для личности"""
+    logger.info(f"Получено сообщение в Personality: {update.message.text}")
     try:
         user_message = update.message.text
         personality_key = context.user_data.get('current_personality')
@@ -158,6 +159,7 @@ async def handle_personality_message(update: Update, context: ContextTypes.DEFAU
 async def handle_personality_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка кнопок в диалоге с личностью"""
     query = update.callback_query
+    logger.info(f"Получен callback в Personality: {query.data}")
     await query.answer()
 
     if query.data == "continue_chat":
@@ -171,7 +173,10 @@ async def handle_personality_callback(update: Update, context: ContextTypes.DEFA
         return CHATING_WITH_PERSONALITY
 
     elif query.data == "change_personality":
-        return await talk_start(update,context)
+        context.user_data.pop('current_personality', None)
+        context.user_data.pop('personality_data', None)
+        await talk_start(update,context)
+        return SELECTION_PERSONALITY
 
     elif query.data == "finish_talk":
         # Очищаем личности
@@ -181,5 +186,4 @@ async def handle_personality_callback(update: Update, context: ContextTypes.DEFA
         from handlers.basic import start
         await start(update,context)
         return  -1
-
-    return CHATING_WITH_PERSONALITY
+    return None

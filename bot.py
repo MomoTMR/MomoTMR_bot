@@ -60,23 +60,22 @@ def main():
         personality_conversation = ConversationHandler(
             entry_points=[
                 CallbackQueryHandler(personality_chat.talk_start, pattern="^talk_interface$"),
-                CommandHandler("talk",personality_chat.talk_start)
+                CommandHandler("talk", personality_chat.talk_start)
             ],
             states={
                 personality_chat.SELECTION_PERSONALITY: [
-                    CallbackQueryHandler(personality_chat.personality_selected,pattern="^personality_.*")
+                    CallbackQueryHandler(personality_chat.personality_selected, pattern="^personality_.*")
                 ],
                 personality_chat.CHATING_WITH_PERSONALITY: [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, personality_chat.handle_personality_message),
                     CallbackQueryHandler(personality_chat.handle_personality_callback,
-                                         pattern="^(continue_chat|finish_talk)$")
+                                         pattern="^(continue_chat|finish_talk|change_personality)$")
                 ],
             },
             fallbacks=[
                 CommandHandler("start", basic.start),
                 CallbackQueryHandler(basic.menu_callback, pattern="^main_menu")
-            ],
-            # per_message=False
+            ]
         )
 
         # Обработка кнопки `personality`
