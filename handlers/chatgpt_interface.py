@@ -8,7 +8,16 @@ logger = logging.getLogger(__name__)
 
 
 WAITING_FOR_MESSAGE = 1
+# Задаем кнопки для inline keyboard.
+keyboard = [
+    [InlineKeyboardButton("💬 Задать еще вопрос", callback_data="gpt_continue")],
+    [InlineKeyboardButton("🏠 Вернуться в меню", callback_data="gpt_finish")]
+]
 
+# Кдадем клаиши в переменную reply_markup
+reply_markup = InlineKeyboardMarkup(keyboard)
+
+# Формируем заголовок
 CAPTION = (
     "🤖 <b>ChatGPT Интерфейс</b>\n\n"
     "Напишите любой вопрос или сообщение, и я передам его ChatGPT!\n\n"
@@ -31,12 +40,8 @@ async def gpt_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     try:
         query = update.callback_query
         logger.info(f"Старт обработки GPT Response{query.data}")
+
         image_path = "data/images/chatgpt.png"
-        '''keyboard = [
-            [InlineKeyboardButton("💬 Задать еще вопрос", callback_data="gpt_continue")],
-            [InlineKeyboardButton("🏠 Вернуться в меню", callback_data="gpt_finish")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)'''
 
         if update.callback_query:
             query = update.callback_query
@@ -89,17 +94,20 @@ async def handle_gpt_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
         user_message = update.message.text
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
         processing_msg = await update.message.reply_text("🤔 Обрабатываю ваш запрос... ⏳")
+
+        #отправляем запрос пользователя в ChatGPT -> openai_client
         gpt_response = await get_chatgpt_response(user_message)
+
         logger.info(f"Получен ответ от ChatGPT: {gpt_response}")
-        keyboard = [
-            [InlineKeyboardButton("💬 Задать еще вопрос", callback_data="gpt_continue")],
-            [InlineKeyboardButton("🏠 Вернуться в меню", callback_data="gpt_finish")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+
         # Удаляем сообщение пользователя
         await update.message.delete()
+
         # Удаляем предыдущее сообщение с меню, если оно есть
+        await processing_msg.delete()
+
         if 'gpt_message_id' in context.user_data:
+            logger.info(f"Контекст сообщения в {context.user_data['gpt_message_id']}")
             try:
                 await context.bot.delete_message(
                     chat_id=update.effective_chat.id,
@@ -107,16 +115,21 @@ async def handle_gpt_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 )
             except Exception as e:
                 logger.warning(f"Не удалось удалить сообщение с меню: {e}")
-        await processing_msg.delete()
+
+
         # Отправляем новое сообщение
         sent_message = await update.message.reply_text(
             f"🤖 <b>ChatGPT отвечает:</b>\n\n{gpt_response}",
             parse_mode='HTML',
             reply_markup=reply_markup
         )
+
         # Сохраняем ID нового сообщения
         context.user_data['gpt_message_id'] = sent_message.message_id
+        logger.info(f"Получен ответ от ChatGPT: {context.user_data['gpt_message_id']}")
+
         return WAITING_FOR_MESSAGE
+
     except Exception as e:
         logger.error(f"Ошибка при обработке сообщения для ChatGPT: {e}", exc_info=True)
         await update.message.reply_text(

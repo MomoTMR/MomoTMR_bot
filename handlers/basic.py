@@ -70,7 +70,6 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif query.data in ["gpt_finish", "main_menu"]:
         logger.info("gpt_finish, main_menu")
-        # await query.message.delete()
         await start_menu_again(query)
 
     elif query.data == "gpt_interface":

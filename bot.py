@@ -37,8 +37,6 @@ def main():
         # Обработка кнопки `personality`
         application.add_handler(CommandHandler("personality", personality_chat.talk_command))
 
-        application.add_handler(CallbackQueryHandler(random_fact.random_fact_callback, pattern="^random_"))
-
         #Пеход в режим GPT
         gpt_conversation = ConversationHandler(
             entry_points=[
@@ -83,6 +81,9 @@ def main():
 
         # Обработка кнопки `gpt`
         application.add_handler(gpt_conversation)
+
+        # Обработка кнопки `Рандомный факт - query.data = random_fact -> random_fact.random_fact_callback`
+        application.add_handler(CallbackQueryHandler(random_fact.random_fact_callback, pattern="^random_"))
 
         # Обработчик кнопок "МЕНЮ"
         application.add_handler(CallbackQueryHandler(basic.menu_callback))
