@@ -5,6 +5,8 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 import asyncio
 
+from handlers import chatgpt_interface
+
 # from handlers import random_fact
 
 
@@ -49,15 +51,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_markup
     except Exception as e:
         logger.error(f"Ошибка в start: {e}", exc_info=True)
         return -1
-    '''await update.message.reply_text(welcome_text, parse_mode='HTML', reply_markup=reply_markup)
-    return -1'''
 
 async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка нажатий кнопок главного меню"""
     query = update.callback_query
     logger.info(f"Получен Callback: {query.data}")
     await query.answer()
-    chat_id = update.callback_query.message.chat_id
     if query.data in ["quiz_coming_soon"]:
         await query.edit_message_text(
             "🚧 <b>Функция в разработке!</b>\n\n"
@@ -71,8 +70,12 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif query.data in ["gpt_finish", "main_menu"]:
         logger.info("gpt_finish, main_menu")
-        await query.message.delete()
+        # await query.message.delete()
         await start_menu_again(query)
+
+    elif query.data == "gpt_interface":
+        logger.info("gpt_finish, main_menu")
+        await chatgpt_interface.gpt_start(update, context)
 
 async def start_menu_again(query):
     """Возврат в главное меню"""

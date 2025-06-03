@@ -32,8 +32,8 @@ async def random_fact(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def random_fact_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка нажатий кнопок для рандомных фактов"""
-    logger.info("Обработка нажатий кнопок для рандомных фактов")
     query = update.callback_query
+    logger.info(f"Обработка нажатий кнопок для рандомных фактов {query.data}")
     await query.answer()
 
     if query.data == "random_more":

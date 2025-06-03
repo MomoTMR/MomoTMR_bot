@@ -1,5 +1,5 @@
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile, InputMediaPhoto
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import ContextTypes
 from services.openai_client import get_chatgpt_response
 import os
@@ -29,26 +29,28 @@ async def gpt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def gpt_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     try:
-        logger.info("Старт обработки GPT Response")
+        query = update.callback_query
+        logger.info(f"Старт обработки GPT Response{query.data}")
         image_path = "data/images/chatgpt.png"
-        keyboard = [
+        '''keyboard = [
             [InlineKeyboardButton("💬 Задать еще вопрос", callback_data="gpt_continue")],
             [InlineKeyboardButton("🏠 Вернуться в меню", callback_data="gpt_finish")]
         ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        reply_markup = InlineKeyboardMarkup(keyboard)'''
+
         if update.callback_query:
             query = update.callback_query
             if os.path.exists(image_path):
                 with open(image_path, 'rb') as photo:
                     sent_message = await query.message.edit_media(
                         media=InputMediaPhoto(media=photo, caption=CAPTION, parse_mode='HTML'),
-                        reply_markup=reply_markup
+                        # reply_markup=reply_markup
                     )
             else:
                 sent_message = await query.message.edit_text(
                     text=CAPTION,
                     parse_mode='HTML',
-                    reply_markup=reply_markup
+                    # reply_markup=reply_markup
                 )
             await query.answer()
         else:
@@ -58,17 +60,20 @@ async def gpt_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
                         photo=photo,
                         caption=CAPTION,
                         parse_mode='HTML',
-                        reply_markup=reply_markup
+                        # reply_markup=reply_markup
                     )
             else:
                 sent_message = await update.message.reply_text(
                     CAPTION,
                     parse_mode='HTML',
-                    reply_markup=reply_markup
+                    # reply_markup=reply_markup
                 )
+
         # Сохраняем ID сообщения для последующего удаления
         context.user_data['gpt_message_id'] = sent_message.message_id
+
         return WAITING_FOR_MESSAGE
+
     except Exception as e:
         logger.error(f"Ошибка при запуске ChatGPT интерфейса: {e}", exc_info=True)
         error_text = "😔 Произошла ошибка при запуске ChatGPT интерфейса. Попробуйте позже."
@@ -118,3 +123,4 @@ async def handle_gpt_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
             "😔 Произошла ошибка при обработке вашего сообщения. Попробуйте еще раз или вернитесь в главное меню."
         )
         return WAITING_FOR_MESSAGE
+
