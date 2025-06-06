@@ -95,7 +95,7 @@ async def handle_gpt_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
         processing_msg = await update.message.reply_text("🤔 Обрабатываю ваш запрос... ⏳")
 
-        #отправляем запрос пользователя в ChatGPT -> openai_client
+        # Отправляем запрос пользователя в ChatGPT -> openai_client
         gpt_response = await get_chatgpt_response(user_message)
 
         logger.info(f"Получен ответ от ChatGPT: {gpt_response}")
@@ -116,24 +116,24 @@ async def handle_gpt_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
             except Exception as e:
                 logger.warning(f"Не удалось удалить сообщение с меню: {e}")
 
+        return WAITING_FOR_MESSAGE
 
-        # Отправляем новое сообщение
+        # Отправляем новое сообщение "ChatGPT отвечает:"
         sent_message = await update.message.reply_text(
             f"🤖 <b>ChatGPT отвечает:</b>\n\n{gpt_response}",
             parse_mode='HTML',
             reply_markup=reply_markup
         )
 
-        # Сохраняем ID нового сообщения
+        # Сохраняем ID нового сообщения в context,user_data
         context.user_data['gpt_message_id'] = sent_message.message_id
         logger.info(f"Получен ответ от ChatGPT: {context.user_data['gpt_message_id']}")
 
-        return WAITING_FOR_MESSAGE
+        return WAITING_FOR_MESSAGE #Остаемся в диалоге
 
     except Exception as e:
         logger.error(f"Ошибка при обработке сообщения для ChatGPT: {e}", exc_info=True)
         await update.message.reply_text(
             "😔 Произошла ошибка при обработке вашего сообщения. Попробуйте еще раз или вернитесь в главное меню."
         )
-        return WAITING_FOR_MESSAGE
-
+        return -1 # Выход из Диалога

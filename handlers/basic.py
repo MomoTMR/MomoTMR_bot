@@ -7,23 +7,14 @@ import asyncio
 
 from handlers import chatgpt_interface
 
-# from handlers import random_fact
-
-
 logger = logging.getLogger(__name__)
+
+
+
 
 # Срабатывает каждый раз когда бот получает команду /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_markup=None):
     logger.info("Команда /start вызвана или fallback")
-
-    """Обработка команды /start."""
-    keyboard = [
-        [InlineKeyboardButton("🎲 Рандомный факт", callback_data="random_fact")],
-        [InlineKeyboardButton("🤖 ChatGPT", callback_data="gpt_interface")],
-        [InlineKeyboardButton("👥 Диалог с личностью", callback_data="talk_interface")],
-        [InlineKeyboardButton("🧠 Квиз (скоро)", callback_data="quiz_coming_soon")],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
 
     welcome_text = (
         "🎉 <b>Добро пожаловать в ChatGPT бота!</b>\n\n"
@@ -34,6 +25,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_markup
         "• Квиз - проверь свои знания (в разработке)\n\n"
         "Выберите функцию из меню ниже:"
     )
+    keyboard = [
+        [InlineKeyboardButton("🎲 Рандомный факт", callback_data="random_fact")],
+        [InlineKeyboardButton("🤖 ChatGPT", callback_data="gpt_interface")],
+        [InlineKeyboardButton("👥 Диалог с личностью", callback_data="talk_interface")],
+        [InlineKeyboardButton("🧠 Квиз (скоро)", callback_data="quiz_coming_soon")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     try:
         if update.message:  # Вызов через команду или сообщение
             await update.message.reply_text(welcome_text, parse_mode='HTML', reply_markup=reply_markup)
@@ -56,6 +54,7 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка нажатий кнопок главного меню"""
     query = update.callback_query
     logger.info(f"Получен Callback: {query.data}")
+
     await query.answer()
     if query.data in ["quiz_coming_soon"]:
         await query.edit_message_text(
