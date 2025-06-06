@@ -57,4 +57,5 @@ async def random_fact_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 
     elif query.data == "random_finish":
         logger.info("Обработка random_finish")
-        await basic.start_menu_again(query)
+        # await basic.start_menu_again(query)
+        await basic.start(update,context)

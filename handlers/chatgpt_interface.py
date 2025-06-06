@@ -1,6 +1,7 @@
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import ContextTypes
+from handlers import basic
 from services.openai_client import get_chatgpt_response
 import os
 
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 WAITING_FOR_MESSAGE = 1
 # Задаем кнопки для inline keyboard.
 keyboard = [
-    [InlineKeyboardButton("💬 Задать еще вопрос", callback_data="gpt_continue")],
+    [InlineKeyboardButton("💬 Новый чат с OpenAi", callback_data="gpt_continue")],
     [InlineKeyboardButton("🏠 Вернуться в меню", callback_data="gpt_finish")]
 ]
 
@@ -31,71 +32,67 @@ CAPTION = (
 
 
 async def gpt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка команды /gpt"""
-    logger.info("Запуск обработки GPT")
-    await gpt_start(update, context)
+    logger.info("▶️ Запуск ChatGPT-интерфейса")
+    await send_gpt_menu(update, context)
+    return WAITING_FOR_MESSAGE
 
+async def continue_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info("▶️ Переапуск ChatGPT-интерфейса")
+    await finish_gpt(update,context)
+    await send_gpt_menu(update,context)
+    return WAITING_FOR_MESSAGE
 
-async def gpt_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    try:
+async def send_gpt_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    image_path = "data/images/chatgpt.png"
+    caption = CAPTION
+
+    # Удаляем всё лишнее
+    if update.message:
+        await update.message.delete()
+
+    # await delete_previous_menu(update, context)
+
+    if update.callback_query:
         query = update.callback_query
-        logger.info(f"Старт обработки GPT Response{query.data}")
-
-        image_path = "data/images/chatgpt.png"
-
-        if update.callback_query:
-            query = update.callback_query
-            if os.path.exists(image_path):
-                with open(image_path, 'rb') as photo:
-                    sent_message = await query.message.edit_media(
-                        media=InputMediaPhoto(media=photo, caption=CAPTION, parse_mode='HTML'),
-                        # reply_markup=reply_markup
-                    )
-            else:
-                sent_message = await query.message.edit_text(
-                    text=CAPTION,
-                    parse_mode='HTML',
-                    # reply_markup=reply_markup
+        if os.path.exists(image_path):
+            with open(image_path, 'rb') as photo:
+                sent = await query.message.edit_media(
+                    media=InputMediaPhoto(media=photo, caption=caption, parse_mode='HTML'),
                 )
-            await query.answer()
         else:
-            if os.path.exists(image_path):
-                with open(image_path, 'rb') as photo:
-                    sent_message = await update.message.reply_photo(
-                        photo=photo,
-                        caption=CAPTION,
-                        parse_mode='HTML',
-                        # reply_markup=reply_markup
-                    )
-            else:
-                sent_message = await update.message.reply_text(
-                    CAPTION,
+            sent = await query.message.edit_text(
+                text=CAPTION,
+                parse_mode='HTML',
+            )
+        await query.answer()
+    else:
+        if os.path.exists(image_path):
+            with open(image_path, 'rb') as photo:
+                sent = await update.message.reply_photo(
+                    photo=photo,
+                    caption=CAPTION,
                     parse_mode='HTML',
-                    # reply_markup=reply_markup
                 )
-
-        # Сохраняем ID сообщения для последующего удаления
-        context.user_data['gpt_message_id'] = sent_message.message_id
-
-        return WAITING_FOR_MESSAGE
-
-    except Exception as e:
-        logger.error(f"Ошибка при запуске ChatGPT интерфейса: {e}", exc_info=True)
-        error_text = "😔 Произошла ошибка при запуске ChatGPT интерфейса. Попробуйте позже."
-        if update.callback_query:
-            await update.callback_query.message.reply_text(error_text)
         else:
-            await update.message.reply_text(error_text)
-        return -1
+            sent = await update.message.reply_text(
+                CAPTION,
+                parse_mode='HTML',
+            )
+
+    # Сохраняем ID, чтобы удалить позже
+    context.user_data['gpt_message_id'] = sent.message_id
+
 
 async def handle_gpt_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    logger.info(f"Запуск обработки сообщения для ChatGPT: {update.message.text}")
     try:
+        await delete_previous_menu(update, context)
         user_message = update.message.text
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+
+        # Отправляем "обрабатываю"
         processing_msg = await update.message.reply_text("🤔 Обрабатываю ваш запрос... ⏳")
 
-        # Отправляем запрос пользователя в ChatGPT -> openai_client
+        # Получаем ответ от GPT
         gpt_response = await get_chatgpt_response(user_message)
 
         logger.info(f"Получен ответ от ChatGPT: {gpt_response}")
@@ -103,37 +100,43 @@ async def handle_gpt_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
         # Удаляем сообщение пользователя
         await update.message.delete()
 
-        # Удаляем предыдущее сообщение с меню, если оно есть
+        # Удаляем сообщение о обработке OpenAi
         await processing_msg.delete()
 
-        if 'gpt_message_id' in context.user_data:
-            logger.info(f"Контекст сообщения в {context.user_data['gpt_message_id']}")
-            try:
-                await context.bot.delete_message(
-                    chat_id=update.effective_chat.id,
-                    message_id=context.user_data['gpt_message_id']
-                )
-            except Exception as e:
-                logger.warning(f"Не удалось удалить сообщение с меню: {e}")
 
-        return WAITING_FOR_MESSAGE
-
-        # Отправляем новое сообщение "ChatGPT отвечает:"
-        sent_message = await update.message.reply_text(
+        # Отправляем новый ответ
+        response_msg = await update.message.reply_text(
             f"🤖 <b>ChatGPT отвечает:</b>\n\n{gpt_response}",
             parse_mode='HTML',
             reply_markup=reply_markup
         )
 
-        # Сохраняем ID нового сообщения в context,user_data
-        context.user_data['gpt_message_id'] = sent_message.message_id
-        logger.info(f"Получен ответ от ChatGPT: {context.user_data['gpt_message_id']}")
+        # Сохраняем новый `message_id` — можно опять использовать для удаления
+        context.user_data['gpt_message_id'] = response_msg.message_id
 
-        return WAITING_FOR_MESSAGE #Остаемся в диалоге
+        return WAITING_FOR_MESSAGE
 
     except Exception as e:
-        logger.error(f"Ошибка при обработке сообщения для ChatGPT: {e}", exc_info=True)
-        await update.message.reply_text(
-            "😔 Произошла ошибка при обработке вашего сообщения. Попробуйте еще раз или вернитесь в главное меню."
-        )
-        return -1 # Выход из Диалога
+        logger.error(f"💥 Ошибка в GPT обработке: {e}", exc_info=True)
+        await update.message.reply_text("😔 Что-то пошло не так. Попробуйте ещё раз.")
+        return -1
+
+async def delete_previous_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    message_id = context.user_data.get('gpt_message_id')
+    if message_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=message_id)
+        except Exception as e:
+            logger.warning(f"❗ Не удалось удалить меню: {e}")
+
+
+async def finish_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE,query = None) -> int:
+    query = update.callback_query
+    await query.answer()
+
+    # Удалим сохранённые данные (если надо)
+    context.user_data.clear()
+
+    # await basic.start_menu_again(query)
+    await basic.start(update,context)
+    return -1

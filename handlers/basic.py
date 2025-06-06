@@ -4,7 +4,6 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 import asyncio
-
 from handlers import chatgpt_interface
 
 logger = logging.getLogger(__name__)
@@ -65,30 +64,14 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         await asyncio.sleep(3)
-        await start_menu_again(query)
+        # await start_menu_again(query)
+        await start(update,context)
 
     elif query.data in ["gpt_finish", "main_menu"]:
         logger.info("gpt_finish, main_menu")
-        await start_menu_again(query)
+        # await start_menu_again(query)
+        await start(update,context)
 
     elif query.data == "gpt_interface":
-        logger.info("gpt_finish, main_menu")
-        await chatgpt_interface.gpt_start(update, context)
-
-async def start_menu_again(query):
-    """Возврат в главное меню"""
-    logger.info("Старт меню again")
-    keyboard = [
-        [InlineKeyboardButton("🎲 Рандомный факт", callback_data="random_fact")],
-        [InlineKeyboardButton("🤖 ChatGPT", callback_data="gpt_interface")],
-        [InlineKeyboardButton("👥 Диалог с личностью", callback_data="talk_interface")],
-        [InlineKeyboardButton("🧠 Квиз (скоро)", callback_data="quiz_coming_soon")],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await query.edit_message_text(
-        "🎉 <b>Добро пожаловать в ChatGPT бота!</b>\n\n"
-        "Выберите одну из доступных функций:",
-        parse_mode='HTML',
-        reply_markup=reply_markup
-    )
+        logger.info("Запуск чата OpenAI *gpt_command*")
+        await chatgpt_interface.gpt_command(update, context)

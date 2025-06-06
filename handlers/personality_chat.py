@@ -1,10 +1,11 @@
 import logging
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, ConversationHandler
 import os
 
 from data.personalities import get_personality_data, get_personality_keyboard
+from handlers import basic
 from services.openai_client import get_personality_response
 
 logger = logging.getLogger(__name__)
@@ -71,7 +72,7 @@ async def talk_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text(error_text)
 
-        return -1
+        return SELECTION_PERSONALITY
 
 
 async def personality_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -106,7 +107,7 @@ async def personality_selected(update: Update, context: ContextTypes.DEFAULT_TYP
     except Exception as e:
         logger.error(f"Erorr choose personality {e}")
         await query.edit_message_text("To be error. PLease try again.")
-        return -1
+        return SELECTION_PERSONALITY
 
 async def handle_personality_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка сообщения для личности"""
@@ -120,7 +121,7 @@ async def handle_personality_message(update: Update, context: ContextTypes.DEFAU
             await update.message.reply_text(
                 f"Произошла ошибка: личность не выбрана. Используйте /talk для начала {personality_key} {personality_data}"
             )
-            return -1
+            return SELECTION_PERSONALITY
 
         # Показываем индикатор "печатает"
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
@@ -180,10 +181,10 @@ async def handle_personality_callback(update: Update, context: ContextTypes.DEFA
 
     elif query.data == "finish_talk":
         # Очищаем личности
+        context.user_data.clear()
         context.user_data.pop('current_personality',None)
         context.user_data.pop('personality_data',None)
+        await basic.start(update, context)
+        return  ConversationHandler.END
 
-        from handlers.basic import start
-        await start(update,context)
-        return  -1
-    return None
+    return CHATING_WITH_PERSONALITY

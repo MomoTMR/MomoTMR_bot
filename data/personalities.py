@@ -30,7 +30,7 @@ def get_personality_keyboard():
                 callback_data = f"personality_{key}"
             )
         ])
-    keyboard.append([InlineKeyboardButton("Back to Home menu", callback_data="main_menu")])
+    keyboard.append([InlineKeyboardButton("Вернутся в главное меню", callback_data="finish_talk")])
 
     return InlineKeyboardMarkup(keyboard)
 

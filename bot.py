@@ -28,12 +28,6 @@ def main():
         start_handler = CommandHandler('start', basic.start)
         application.add_handler(start_handler)
 
-        # Обработка команды `random`
-        application.add_handler(CommandHandler("random", random_fact.random_fact))
-
-        # Обработка команды `gpt`
-        application.add_handler(CommandHandler("gpt", chatgpt_interface.gpt_command))
-
         # Обработка кнопки `personality`
         application.add_handler(CommandHandler("personality", personality_chat.talk_command))
 
@@ -41,15 +35,17 @@ def main():
         gpt_conversation = ConversationHandler(
             entry_points=[
                 CommandHandler("gpt", chatgpt_interface.gpt_command),
-                CallbackQueryHandler(chatgpt_interface.gpt_start, pattern="^gpt_interface$")],
+                CallbackQueryHandler(chatgpt_interface.gpt_command, pattern="^gpt_interface$")],
             states={
                 chatgpt_interface.WAITING_FOR_MESSAGE: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, chatgpt_interface.handle_gpt_message)
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, chatgpt_interface.handle_gpt_message),
+                    CallbackQueryHandler(chatgpt_interface.finish_gpt, pattern="^(gpt_finish|main_menu)"),
+                    CallbackQueryHandler(chatgpt_interface.continue_gpt, pattern="^gpt_continue")
                 ],
             },
             fallbacks=[
                 CommandHandler("start", basic.start),
-                CallbackQueryHandler(basic.menu_callback, pattern="^(gpt_finish|gpt_continue|main_menu)")
+                CallbackQueryHandler(basic.menu_callback, pattern="^(gpt_finish|main_menu)")
             ],
             # per_message=False
         )
@@ -62,6 +58,8 @@ def main():
             ],
             states={
                 personality_chat.SELECTION_PERSONALITY: [
+                    CallbackQueryHandler(personality_chat.handle_personality_callback,
+                                         pattern="^(continue_chat|finish_talk|change_personality)$"),
                     CallbackQueryHandler(personality_chat.personality_selected, pattern="^personality_.*")
                 ],
                 personality_chat.CHATING_WITH_PERSONALITY: [
@@ -85,13 +83,21 @@ def main():
         # Обработка кнопки `Рандомный факт - query.data = random_fact -> random_fact.random_fact_callback`
         application.add_handler(CallbackQueryHandler(random_fact.random_fact_callback, pattern="^random_"))
 
+        # Обработка команды `random`
+        application.add_handler(CommandHandler("random", random_fact.random_fact))
+
+        # Обработка команды `gpt`
+        application.add_handler(CommandHandler("gpt", chatgpt_interface.gpt_command))
+
         # Обработчик кнопок "МЕНЮ"
         application.add_handler(CallbackQueryHandler(basic.menu_callback))
 
         # Запуск обработчика событий
+
         application.run_polling()
+
     except Exception as e:
         logger.error(f"Ошибка при запуске бота: {e}", exc_info=True)
 
 if __name__ == '__main__':
-    main()
+        main()
