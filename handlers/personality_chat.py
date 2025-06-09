@@ -135,7 +135,7 @@ async def handle_personality_message(update: Update, context: ContextTypes.DEFAU
 
         #Создаем кнопки
         keyboard = [
-            [InlineKeyboardButton('Продолжить диалог', callback_data="continue_chat")],
+            # [InlineKeyboardButton('Продолжить диалог', callback_data="continue_chat")],
             [InlineKeyboardButton('Выбрать другую личность', callback_data="change_personality")],
             [InlineKeyboardButton('Закончить', callback_data="finish_talk")]
         ]
@@ -166,11 +166,7 @@ async def handle_personality_callback(update: Update, context: ContextTypes.DEFA
     if query.data == "continue_chat":
         personality_data = context.user_data.get("personality_data")
         if personality_data:
-            await query.edit_message_text(
-                f"{personality_data['emoji']} Продолжаем диалог с {personality_data['name']}\n\n",
-                "Напишите следующее сообщение",
-                parse_mode='HTML'
-            )
+            pass # Заглушка на перезапуск диалога.
         return CHATING_WITH_PERSONALITY
 
     elif query.data == "change_personality":

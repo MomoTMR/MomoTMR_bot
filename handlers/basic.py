@@ -64,14 +64,4 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         await asyncio.sleep(3)
-        # await start_menu_again(query)
         await start(update,context)
-
-    elif query.data in ["gpt_finish", "main_menu"]:
-        logger.info("gpt_finish, main_menu")
-        # await start_menu_again(query)
-        await start(update,context)
-
-    elif query.data == "gpt_interface":
-        logger.info("Запуск чата OpenAI *gpt_command*")
-        await chatgpt_interface.gpt_command(update, context)

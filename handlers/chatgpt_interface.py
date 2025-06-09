@@ -38,8 +38,9 @@ async def gpt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def continue_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("▶️ Переапуск ChatGPT-интерфейса")
-    await finish_gpt(update,context)
-    await send_gpt_menu(update,context)
+    # await finish_gpt(update,context)
+    # await send_gpt_menu(update,context)
+    logger.info("Пользователь хочет обнулить чат !!!")
     return WAITING_FOR_MESSAGE
 
 async def send_gpt_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
