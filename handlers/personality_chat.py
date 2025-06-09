@@ -72,7 +72,7 @@ async def talk_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text(error_text)
 
-        return SELECTION_PERSONALITY
+        return -1
 
 
 async def personality_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -155,7 +155,7 @@ async def handle_personality_message(update: Update, context: ContextTypes.DEFAU
         await update.message.reply_text(
             "Произошла ошибка при обработке сообщения. Попробуйте еще раз"
         )
-        return  CHATING_WITH_PERSONALITY
+        return  -1
 
 async def handle_personality_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка кнопок в диалоге с личностью"""
@@ -167,6 +167,7 @@ async def handle_personality_callback(update: Update, context: ContextTypes.DEFA
         personality_data = context.user_data.get("personality_data")
         if personality_data:
             pass # Заглушка на перезапуск диалога.
+            logger.info("Здесь продолджение диалога с той же личностью")
         return CHATING_WITH_PERSONALITY
 
     elif query.data == "change_personality":

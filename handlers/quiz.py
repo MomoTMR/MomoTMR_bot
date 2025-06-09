@@ -3,8 +3,6 @@ import os
 import re
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
-
-from handlers import basic
 from services.openai_client import get_personality_response
 from data.quiz_topics import get_quiz_topics_keyboard, get_quiz_topic_data, get_quiz_continue_keyboard
 
@@ -17,7 +15,6 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка команды /quiz"""
     logger.info('Обрабатываю нажатие на /quiz')
     await quiz_start(update, context)
-    return SELECTING_TOPIC
 
 
 async def quiz_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -224,18 +221,42 @@ async def handle_quiz_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     """Обработка кнопок в квизе"""
     query = update.callback_query
     await query.answer()
+    logger.debug(f"Обработка quiz callback: {query.data}")
 
     try:
         if query.data.startswith("quiz_continue_"):
             # Продолжаем с той же темой
             topic_key = query.data.replace("quiz_continue_", "")
+            logger.info(f"Продолжение квиза с темой: {topic_key}")
+
             context.user_data['current_quiz_topic'] = topic_key
             context.user_data['quiz_topic_data'] = get_quiz_topic_data(topic_key)
 
-            # Перенаправляем на выбор темы (это сгенерирует новый вопрос)
-            fake_query_data = f"quiz_topic_{topic_key}"
-            query.data = fake_query_data
-            # return await topic_selected(update, context)
+            # Генерируем новый вопрос для той же темы
+            processing_text = f"{context.user_data['quiz_topic_data']['emoji']} Генерирую новый вопрос... ⏳"
+            if query.message.photo:
+                await query.edit_message_caption(processing_text, parse_mode='HTML')
+            else:
+                await query.edit_message_text(processing_text, parse_mode='HTML')
+
+            question = await get_personality_response("Создай вопрос для квиза",
+                                                      context.user_data['quiz_topic_data']['prompt'])
+            context.user_data['current_question'] = question
+            correct_answer = extract_correct_answer(question)
+            context.user_data['correct_answer'] = correct_answer
+
+            message_text = (
+                f"{context.user_data['quiz_topic_data']['emoji']} <b>Квиз: {context.user_data['quiz_topic_data']['name']}</b>\n\n"
+                f"{question}\n\n"
+                f"📊 <b>Счет:</b> {context.user_data['quiz_score']}/{context.user_data['quiz_total']}\n\n"
+                "✍️ Напишите ваш ответ (A, B, C или D):"
+            )
+
+            if query.message.photo:
+                await query.edit_message_caption(caption=message_text, parse_mode='HTML')
+            else:
+                await query.edit_message_text(text=message_text, parse_mode='HTML')
+
             return ANSWERING_QUESTION
 
         elif query.data == "quiz_change_topic":
@@ -296,16 +317,14 @@ async def handle_quiz_callback(update: Update, context: ContextTypes.DEFAULT_TYP
                 parse_mode='HTML',
                 reply_markup=reply_markup
             )
-            await basic.start(update, context)
             return -1
-        # return ANSWERING_QUESTION
 
     except Exception as e:
         logger.error(f"Ошибка в quiz callback: {e}")
         await query.edit_message_text("😔 Произошла ошибка. Попробуйте еще раз.")
         return -1
 
-    return ANSWERING_QUESTION
+    return -1
 
 
 def extract_correct_answer(question_text):

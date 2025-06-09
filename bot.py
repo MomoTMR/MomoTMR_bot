@@ -20,21 +20,28 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 if not TELEGRAM_TOKEN:
-    raise ValueError("Введите токен в .env")
+    raise ValueError("Введите TELEGRAM_TOKEN токен в файле .env")
 else:
-    logger.info("TELEGRAM_TOKEN load complete")
+    logger.debug("TELEGRAM_TOKEN loaded successfully")
 
 def main():
     try:
         # Инициализация TELEGRAM_TOKEN
         application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
-        # Обработка команды `start`
-        start_handler = CommandHandler('start', basic.start)
-        application.add_handler(start_handler)
+        # Регистрация основных команд бота
+        command_handlers = {
+            'start': basic.start,
+            'random': random_fact.random_fact,
+            'gpt': chatgpt_interface.gpt_command,
+            'personality': personality_chat.talk_command,
+            'quiz': quiz.quiz_command,
+        }
+        for command, handler_func in command_handlers.items():
+            application.add_handler(CommandHandler(command, handler_func))
 
-        # Обработка кнопки `personality`
-        application.add_handler(CommandHandler("personality", personality_chat.talk_command))
+        # Обработка кнопки `Рандомный факт - query.data = random_fact -> random_fact.random_fact_callback`
+        application.add_handler(CallbackQueryHandler(random_fact.random_fact_callback, pattern="^random_"))
 
         #Пеход в режим GPT
         gpt_conversation = ConversationHandler(
@@ -44,22 +51,21 @@ def main():
             states={
                 chatgpt_interface.WAITING_FOR_MESSAGE: [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, chatgpt_interface.handle_gpt_message),
-                    CallbackQueryHandler(chatgpt_interface.finish_gpt, pattern="^(gpt_finish|main_menu)"),
+                    CallbackQueryHandler(chatgpt_interface.finish_gpt, pattern="^(gpt_finish$|main_menu$)"),
                     CallbackQueryHandler(chatgpt_interface.continue_gpt, pattern="^gpt_continue")
                 ],
             },
             fallbacks=[
                 CommandHandler("start", basic.start),
-                CallbackQueryHandler(basic.menu_callback, pattern="^(gpt_finish|main_menu)")
-            ],
-            # per_message=False
+                CallbackQueryHandler(basic.menu_callback, pattern="^(gpt_finish$|main_menu$)")
+            ]
         )
 
         #Пеход в режим Personality
         personality_conversation = ConversationHandler(
             entry_points=[
-                CallbackQueryHandler(personality_chat.talk_start, pattern="^talk_interface$"),
-                CommandHandler("talk", personality_chat.talk_start)
+                CommandHandler("talk", personality_chat.talk_command),
+                CallbackQueryHandler(personality_chat.talk_start, pattern="^talk_interface$")
             ],
             states={
                 personality_chat.SELECTION_PERSONALITY: [
@@ -75,14 +81,15 @@ def main():
             },
             fallbacks=[
                 CommandHandler("start", basic.start),
-                CallbackQueryHandler(basic.menu_callback, pattern="^main_menu")
+                CallbackQueryHandler(basic.menu_callback, pattern="^(gpt_finish$|main_menu$)")
             ]
         )
+
         # Переход в режим Quiz
         quiz_conversation = ConversationHandler(
             entry_points=[
-                CallbackQueryHandler(quiz.quiz_command, pattern="^quiz_interface$"),
-                CommandHandler("quiz", quiz.quiz_command)
+                CommandHandler("quiz", quiz.quiz_command),
+                CallbackQueryHandler(quiz.quiz_start, pattern="^quiz_interface$")
             ],
             states={
                 quiz.SELECTING_TOPIC: [
@@ -91,41 +98,31 @@ def main():
                 quiz.ANSWERING_QUESTION: [
                     MessageHandler(filters.TEXT & ~filters.COMMAND, quiz.handle_quiz_answer),
                     CallbackQueryHandler(quiz.handle_quiz_callback,
-                                         pattern="^(quiz_continue_|quiz_change_topic|quiz_finish)$")
+                                         pattern="^quiz_continue_"),
+                    CallbackQueryHandler(quiz.handle_quiz_callback,
+                                         pattern="^(quiz_change_topic|quiz_finish)$")
                 ],
             },
             fallbacks=[
                 CommandHandler("start", basic.start),
                 CallbackQueryHandler(basic.menu_callback, pattern="^main_menu$")
-            ],
+            ]
         )
-
-        # Обработка кнопки `personality`
-        application.add_handler(personality_conversation)
 
         # Обработка кнопки `gpt`
         application.add_handler(gpt_conversation)
 
+        # Обработка кнопки `personality`
+        application.add_handler(personality_conversation)
+
         # Обработка кнопки `quiz`
         application.add_handler(quiz_conversation)
 
-        # Обработка кнопки `Рандомный факт - query.data = random_fact -> random_fact.random_fact_callback`
-        application.add_handler(CallbackQueryHandler(random_fact.random_fact_callback, pattern="^random_"))
-
-        # Обработка команды `random`
-        application.add_handler(CommandHandler("random", random_fact.random_fact))
-
-        # Обработка команды `gpt`
-        application.add_handler(CommandHandler("gpt", chatgpt_interface.gpt_command))
-
-        # Обработка команды `quiz`
-        application.add_handler(CommandHandler("quiz", quiz.quiz_command))
-
         # Обработчик кнопок "МЕНЮ"
-        application.add_handler(CallbackQueryHandler(basic.menu_callback))
+        # application.add_handler(CallbackQueryHandler(basic.menu_callback))
+        application.add_handler(CallbackQueryHandler(basic.menu_callback, pattern="^menu$"))
 
         # Запуск обработчика событий
-
         application.run_polling()
 
     except Exception as e:

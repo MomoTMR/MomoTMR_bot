@@ -1,4 +1,8 @@
+import logging
+
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+
+logger = logging.getLogger(__name__)
 
 QUIZ_TOPICS = {
     "programming": {
@@ -91,10 +95,10 @@ def get_quiz_topic_data(topic_key):
 
 def get_quiz_continue_keyboard(topic_key):
     """Возвращает клавиатуру для продолжения квиза"""
+    logger.info(f"Топик {topic_key}")
     keyboard = [
         [InlineKeyboardButton("🎯 Ещё вопрос", callback_data=f"quiz_continue_{topic_key}")],
         [InlineKeyboardButton("🔄 Сменить тему", callback_data="quiz_change_topic")],
         [InlineKeyboardButton("🏁 Закончить квиз", callback_data="quiz_finish")]
     ]
     return InlineKeyboardMarkup(keyboard)
-    return ANSWERING_QUESTION
