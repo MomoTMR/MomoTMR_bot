@@ -100,12 +100,14 @@ def main():
                     CallbackQueryHandler(quiz.handle_quiz_callback,
                                          pattern="^quiz_continue_"),
                     CallbackQueryHandler(quiz.handle_quiz_callback,
-                                         pattern="^(quiz_change_topic|quiz_finish)$")
+                                         pattern="^quiz_change_topic$"),
+                    CallbackQueryHandler(quiz.handle_quiz_callback,
+                                         pattern="^quiz_finish$")
                 ],
             },
             fallbacks=[
                 CommandHandler("start", basic.start),
-                CallbackQueryHandler(basic.menu_callback, pattern="^main_menu$")
+                CallbackQueryHandler(quiz.handle_quiz_callback, pattern="^quiz_finish$")
             ]
         )
 
@@ -120,7 +122,7 @@ def main():
 
         # Обработчик кнопок "МЕНЮ"
         # application.add_handler(CallbackQueryHandler(basic.menu_callback))
-        application.add_handler(CallbackQueryHandler(basic.menu_callback, pattern="^menu$"))
+        application.add_handler(CallbackQueryHandler(basic.menu_callback, pattern="^halt$"))
 
         # Запуск обработчика событий
         application.run_polling()

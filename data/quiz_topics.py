@@ -84,7 +84,7 @@ def get_quiz_topics_keyboard():
     for topic_key, topic_data in QUIZ_TOPICS.items():
         keyboard.append([InlineKeyboardButton(topic_data["name"], callback_data=f"quiz_topic_{topic_key}")])
 
-    keyboard.append([InlineKeyboardButton("🏠 Главное меню", callback_data="main_menu")])
+    keyboard.append([InlineKeyboardButton("🏠 Главное меню", callback_data="quiz_finish")])
     return InlineKeyboardMarkup(keyboard)
 
 

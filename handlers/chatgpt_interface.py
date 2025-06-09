@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import ContextTypes
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 WAITING_FOR_MESSAGE = 1
 # Задаем кнопки для inline keyboard.
 keyboard = [
-    [InlineKeyboardButton("💬 Продолжить этот диалог с OpenAI", callback_data="gpt_continue")],
+    [InlineKeyboardButton("💬 Новый диалог с OpenAI", callback_data="gpt_continue")],
     [InlineKeyboardButton("🏠 Вернуться в меню", callback_data="gpt_finish")]
 ]
 
@@ -33,14 +34,14 @@ CAPTION = (
 
 async def gpt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("▶️ Запуск ChatGPT-интерфейса")
+    context.user_data['gpt_history'] = []  # Инициализация истории
     await send_gpt_menu(update, context)
     return WAITING_FOR_MESSAGE
 
 async def continue_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("▶️ Переапуск ChatGPT-интерфейса")
-    # await finish_gpt(update,context)
-    # await send_gpt_menu(update,context)
-    logger.info("Пользователь хочет обнулить чат !!!")
+    context.user_data['gpt_history'] = []  # Очистка истории
+    await send_gpt_menu(update, context)
     return WAITING_FOR_MESSAGE
 
 async def send_gpt_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -50,8 +51,6 @@ async def send_gpt_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     # Удаляем всё лишнее
     if update.message:
         await update.message.delete()
-
-    # await delete_previous_menu(update, context)
 
     if update.callback_query:
         query = update.callback_query
@@ -90,20 +89,29 @@ async def handle_gpt_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
         user_message = update.message.text
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
 
+        # Сохраняем сообщение пользователя в историю
+        context.user_data['gpt_history'].append({"role": "user", "content": user_message})
+        logger.info(f"Сообщение пользователя {user_message}")
+
         # Отправляем "обрабатываю"
         processing_msg = await update.message.reply_text("🤔 Обрабатываю ваш запрос... ⏳")
 
-        # Получаем ответ от GPT
-        gpt_response = await get_chatgpt_response(user_message)
+        # Получаем ответ от GPT, передавая всю историю
+        logger.info(f"История диалога: {context.user_data['gpt_history']}")
+
+        # Получаем ответ от GPT, передавая всю историю
+        gpt_response = await get_chatgpt_response(context.user_data['gpt_history'])
 
         logger.info(f"Получен ответ от ChatGPT: {gpt_response}")
+
+        # Сохраняем ответ GPT в историю
+        context.user_data['gpt_history'].append({"role": "assistant", "content": gpt_response})
 
         # Удаляем сообщение пользователя
         await update.message.delete()
 
         # Удаляем сообщение о обработке OpenAi
         await processing_msg.delete()
-
 
         # Отправляем новый ответ
         response_msg = await update.message.reply_text(
@@ -139,5 +147,6 @@ async def finish_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE,query = 
     context.user_data.clear()
 
     # await basic.start_menu_again(query)
+    await asyncio.sleep(3)
     await basic.start(update,context)
     return -1

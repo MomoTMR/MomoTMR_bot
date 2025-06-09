@@ -1,8 +1,10 @@
+import asyncio
 import logging
 import os
 import re
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
+from handlers import basic
 from services.openai_client import get_personality_response
 from data.quiz_topics import get_quiz_topics_keyboard, get_quiz_topic_data, get_quiz_continue_keyboard
 
@@ -303,20 +305,13 @@ async def handle_quiz_callback(update: Update, context: ContextTypes.DEFAULT_TYP
             context.user_data.pop('current_question', None)
             context.user_data.pop('correct_answer', None)
 
-            # Создаем кнопки главного меню
-            keyboard = [
-                [InlineKeyboardButton("🎲 Случайный факт", callback_data="random_interface")],
-                [InlineKeyboardButton("🤖 ChatGPT", callback_data="gpt_interface")],
-                [InlineKeyboardButton("👥 Диалог с личностью", callback_data="talk_interface")],
-                [InlineKeyboardButton("🧠 Квиз", callback_data="quiz_interface")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-
             await query.edit_message_text(
                 final_text,
                 parse_mode='HTML',
-                reply_markup=reply_markup
+                # reply_markup=reply_markup
             )
+            await asyncio.sleep(3)
+            await basic.start(update, context)
             return -1
 
     except Exception as e:
