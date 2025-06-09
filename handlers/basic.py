@@ -28,7 +28,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_markup
         [InlineKeyboardButton("🎲 Рандомный факт", callback_data="random_fact")],
         [InlineKeyboardButton("🤖 ChatGPT", callback_data="gpt_interface")],
         [InlineKeyboardButton("👥 Диалог с личностью", callback_data="talk_interface")],
-        [InlineKeyboardButton("🧠 Квиз (скоро)", callback_data="quiz_coming_soon")],
+        [InlineKeyboardButton("🧠 Поиграем в Квиз ?", callback_data="quiz_interface")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     try:
@@ -55,6 +55,9 @@ async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"Получен Callback: {query.data}")
 
     await query.answer()
+
+    logger.info(f"Текущее состояние: {context.user_data.get('state')}")
+
     if query.data in ["quiz_coming_soon"]:
         await query.edit_message_text(
             "🚧 <b>Функция в разработке!</b>\n\n"

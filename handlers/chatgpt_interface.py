@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 WAITING_FOR_MESSAGE = 1
 # Задаем кнопки для inline keyboard.
 keyboard = [
-    [InlineKeyboardButton("💬 Новый чат с OpenAi", callback_data="gpt_continue")],
+    [InlineKeyboardButton("💬 Продолжить этот диалог с OpenAI", callback_data="gpt_continue")],
     [InlineKeyboardButton("🏠 Вернуться в меню", callback_data="gpt_finish")]
 ]
 
