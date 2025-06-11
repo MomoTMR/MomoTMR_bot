@@ -2,10 +2,11 @@ import logging
 import os
 from dotenv import load_dotenv
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ConversationHandler, MessageHandler, filters
-from handlers import basic, random_fact, chatgpt_interface, personality_chat, quiz
+from handlers import basic, random_fact, chatgpt_interface, personality_chat, quiz,translator_chat
 from warnings import filterwarnings
 from telegram.warnings import PTBUserWarning
 
+from handlers.translator_chat import translate_command
 
 filterwarnings(action="ignore", message=r".*CallbackQueryHandler", category=PTBUserWarning)
 
@@ -36,6 +37,7 @@ def main():
             'gpt': chatgpt_interface.gpt_command,
             'personality': personality_chat.talk_command,
             'quiz': quiz.quiz_command,
+            'translate':translator_chat.translate_command
         }
         for command, handler_func in command_handlers.items():
             application.add_handler(CommandHandler(command, handler_func))
@@ -111,6 +113,31 @@ def main():
             ]
         )
 
+        # Переход в режим Translate
+        translator_conversation = ConversationHandler(
+            entry_points=[
+                CommandHandler("translate", translator_chat.translate_command),
+                CallbackQueryHandler(translator_chat.translate_start, pattern="^translate_interface$")
+            ],
+            states={
+                translator_chat.SELECTION_LANGUAGE: [
+                    CallbackQueryHandler(translator_chat.handle_languages_callback,
+                                         pattern="^(continue_translate|finish_translate|change_languages)$"),
+                    CallbackQueryHandler(translator_chat.languages_selected, pattern="^languages_.*")
+                ],
+                translator_chat.CHATING_WITH_TRANSLATOR: [
+                    MessageHandler(filters.TEXT & ~filters.COMMAND, translator_chat.handle_languages_message),
+                    CallbackQueryHandler(translator_chat.handle_languages_callback,
+                                         pattern="^(continue_translate|finish_translate|change_languages)$")
+                ],
+            },
+            fallbacks=[
+                CommandHandler("start", basic.start),
+                CallbackQueryHandler(basic.menu_callback, pattern="^(finish_translate|main_menu$)")
+            ]
+        )
+
+
         # Обработка кнопки `gpt`
         application.add_handler(gpt_conversation)
 
@@ -119,6 +146,9 @@ def main():
 
         # Обработка кнопки `quiz`
         application.add_handler(quiz_conversation)
+
+        # Обработка кнопки `translate`
+        application.add_handler(translator_conversation)
 
         # Обработчик кнопок "МЕНЮ"
         # application.add_handler(CallbackQueryHandler(basic.menu_callback))

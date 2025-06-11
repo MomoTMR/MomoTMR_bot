@@ -20,8 +20,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_markup
         "🚀 <b>Доступные функции:</b>\n"
         "• Рандомный факт - получи интересный факт\n"
         "• ChatGPT - общение с ИИ\n"
-        "• Диалог с личностью - говори с известными людьми (в разработке)\n"
-        "• Квиз - проверь свои знания (в разработке)\n\n"
+        "• Диалог с личностью - говори с известными людьми\n"
+        "• Квиз - проверь свои знания\n"
+        "• Переводчик\n\n"
         "Выберите функцию из меню ниже:"
     )
     keyboard = [
@@ -29,6 +30,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_markup
         [InlineKeyboardButton("🤖 ChatGPT", callback_data="gpt_interface")],
         [InlineKeyboardButton("👥 Диалог с личностью", callback_data="talk_interface")],
         [InlineKeyboardButton("🧠 Поиграем в Квиз ?", callback_data="quiz_interface")],
+        [InlineKeyboardButton("🥸 Переводчик на разные языки", callback_data="translate_interface")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     try:
@@ -52,11 +54,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_markup
 async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка нажатий кнопок главного меню"""
     query = update.callback_query
-    logger.info(f"Получен Callback: {query.data}")
+    logger.info(f"Получен Callback в basic: {query.data}")
+    logger.info(f"Текущее состояние: {context.user_data.get('state')}")
 
     await query.answer()
-
-    logger.info(f"Текущее состояние: {context.user_data.get('state')}")
 
     if query.data in ["quiz_coming_soon"]:
         await query.edit_message_text(

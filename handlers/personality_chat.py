@@ -1,4 +1,5 @@
 import logging
+from statistics import quantiles
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputFile
 from telegram.ext import ContextTypes, ConversationHandler
@@ -13,17 +14,16 @@ logger = logging.getLogger(__name__)
 SELECTION_PERSONALITY, CHATING_WITH_PERSONALITY = range(2)
 
 async def talk_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка команды /talk"""
+    logging.info(f"Обработка команды /talk")
     await talk_start(update,context)
 
 async def talk_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logging.info(f"Обработка кнопки talk_interface")
     try:
-        image_path="data/images/chagpt.png"
+        image_path="data/images/personality.png"
         message_text = (
             "Диалог с известной личностью\n\n"
             "Выберете с кем хотите общаться\n\n"
-            "Альберт Эйнштейн\n\n"
-            "Уйльям Шекспир\n\n"
             "Выберите личность:"
         )
 
@@ -76,23 +76,22 @@ async def talk_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def personality_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка выбора личности"""
+    logging.info(f"Обработка выбора личности")
     query = update.callback_query
     await query.answer()
 
     try:
-        #Извлекаем ключ личности из callback_data
+        logging.info(f"Извлекаем ключ личности из callback_data")
         personality_key = query.data.replace("personality_","")
         personality = get_personality_data(personality_key)
-
+        logging.info(f"Проерка переменной {personality}")
         if not personality:
             await query.edit_message_text("X Ошибка: Личность не найдена.")
             return -1
 
-        #Сохраняем выбраную личность в контексте
         context.user_data['current_personality'] = personality_key
         context.user_data['personality_data'] = personality
-
+        logging.info(f"Сохраняем выбраную личность в контексте -{personality}")
         message_text = (
             f"{personality['emoji']} Диалог с {personality['name']} \n\n"
             f"Теперь вы можете общатся с {personality['name']}! \n\n"
@@ -158,7 +157,6 @@ async def handle_personality_message(update: Update, context: ContextTypes.DEFAU
         return  -1
 
 async def handle_personality_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка кнопок в диалоге с личностью"""
     query = update.callback_query
     logger.info(f"Получен callback в Personality: {query.data}")
     await query.answer()
@@ -167,7 +165,7 @@ async def handle_personality_callback(update: Update, context: ContextTypes.DEFA
         personality_data = context.user_data.get("personality_data")
         if personality_data:
             pass # Заглушка на перезапуск диалога.
-            logger.info("Здесь продолджение диалога с той же личностью")
+            logger.info("Здесь продолжение диалога с той же личностью")
         return CHATING_WITH_PERSONALITY
 
     elif query.data == "change_personality":
@@ -177,7 +175,7 @@ async def handle_personality_callback(update: Update, context: ContextTypes.DEFA
         return SELECTION_PERSONALITY
 
     elif query.data == "finish_talk":
-        # Очищаем личности
+        logging.info(f"Очищаем личности {query.data}")
         context.user_data.clear()
         context.user_data.pop('current_personality',None)
         context.user_data.pop('personality_data',None)
