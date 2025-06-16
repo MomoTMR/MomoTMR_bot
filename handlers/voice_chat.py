@@ -3,9 +3,9 @@ from telegram.ext import (CommandHandler,
                           MessageHandler,
                           filters,
                           ConversationHandler,
-                          ApplicationBuilder)
+                          ApplicationBuilder,
+                          CallbackContext, ContextTypes)
 from telegram import Update
-from telegram.ext import CallbackContext
 import os
 import logging
 
@@ -18,11 +18,53 @@ logger = logging.getLogger(__name__)
 # Состояния диалога
 VOICE_DIALOG = 1
 
+CAPTION_VOICE = "Отправьте голосовое сообщение, и я отвечу голосом!"
+
 
 async def start_voice_dialog(update: Update, context: CallbackContext) -> int:
-    """Начинает диалог с голосовыми сообщениями."""
-    await update.message.reply_text("Отправьте голосовое сообщение, и я отвечу голосом!")
+
+    logger.info("Начинает диалог с голосовыми сообщениями.")
+    context.user_data['gpt_history'] = []  # Инициализация истории
+    await send_voice_menu(update, context)
     return VOICE_DIALOG
+
+async def send_voice_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    image_path = "data/images/voice_chat.png"
+    caption = CAPTION_VOICE
+
+    # Удаляем всё лишнее
+    if update.message:
+        await update.message.delete()
+
+    if update.callback_query:
+        query = update.callback_query
+        if os.path.exists(image_path):
+            with open(image_path, 'rb') as photo:
+                sent = await query.message.edit_media(
+                    media=InputMediaPhoto(media=photo, caption=caption, parse_mode='HTML'),
+                )
+        else:
+            sent = await query.message.edit_text(
+                text=caption,
+                parse_mode='HTML',
+            )
+        await query.answer()
+    else:
+        if os.path.exists(image_path):
+            with open(image_path, 'rb') as photo:
+                sent = await update.message.reply_photo(
+                    photo=photo,
+                    caption=caption,
+                    parse_mode='HTML',
+                )
+        else:
+            sent = await update.message.reply_text(
+                caption,
+                parse_mode='HTML',
+            )
+
+    # Сохраняем ID, чтобы удалить позже
+    context.user_data['gpt_message_id'] = sent.message_id
 
 
 # async def handle_voice(update: Update, context: CallbackContext) -> int:

@@ -31,6 +31,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_markup
         [InlineKeyboardButton("👥 Диалог с личностью", callback_data="talk_interface")],
         [InlineKeyboardButton("🧠 Поиграем в Квиз ?", callback_data="quiz_interface")],
         [InlineKeyboardButton("🥸 Переводчик на разные языки", callback_data="translate_interface")],
+        [InlineKeyboardButton("🚀 Запустить голосовой чат", callback_data="start_voice_dialog")],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     try:

@@ -2,11 +2,11 @@ import logging
 import os
 from dotenv import load_dotenv
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ConversationHandler, MessageHandler, filters
-from handlers import basic, random_fact, chatgpt_interface, personality_chat, quiz,translator_chat
+from handlers import basic, random_fact, chatgpt_interface, personality_chat, quiz, translator_chat, voice_chat
 from warnings import filterwarnings
 from telegram.warnings import PTBUserWarning
 
-from handlers.translator_chat import translate_command
+from services import voice_recognition
 
 filterwarnings(action="ignore", message=r".*CallbackQueryHandler", category=PTBUserWarning)
 
@@ -136,6 +136,21 @@ def main():
                 CallbackQueryHandler(basic.menu_callback, pattern="^(finish_translate|main_menu$)")
             ]
         )
+        voice_conversation = ConversationHandler(
+            entry_points=[
+                CommandHandler("voice", voice_chat.start_voice_dialog),
+                CallbackQueryHandler(voice_chat.start_voice_dialog, pattern="^start_voice_dialog$")
+            ],
+            states={
+                voice_chat.VOICE_DIALOG: [
+                    MessageHandler(filters.VOICE, voice_recognition.handle_voice),
+                ]
+            },
+            fallbacks=[
+                CommandHandler("start", basic.start),
+                CallbackQueryHandler(basic.menu_callback, pattern="^main_menu$")
+            ]
+        )
 
 
         # Обработка кнопки `gpt`
@@ -149,6 +164,9 @@ def main():
 
         # Обработка кнопки `translate`
         application.add_handler(translator_conversation)
+
+        # Обработка кнопки `voice`
+        application.add_handler(voice_conversation)
 
         # Обработчик кнопок "МЕНЮ"
         # application.add_handler(CallbackQueryHandler(basic.menu_callback))
