@@ -3,11 +3,18 @@ import logging
 import speech_recognition as sr
 from gtts import gTTS
 from pydub import AudioSegment
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext
+from handlers.voice_chat import VOICE_DIALOG
+from services.openai_client import get_chatgpt_response
 
 logger = logging.getLogger(__name__)
 
+# Задаем кнопки для inline keyboard.
+keyboard = [[InlineKeyboardButton("🏠 Вернуться в меню", callback_data="voice_stop")]]
+
+# Кдадем клаиши в переменную reply_markup
+reply_markup = InlineKeyboardMarkup(keyboard)
 
 async def handle_voice(update: Update, context: CallbackContext) -> int:
     """Обработка голосовых сообщений с распознаванием и ответом"""
@@ -15,6 +22,7 @@ async def handle_voice(update: Update, context: CallbackContext) -> int:
     wav_file = None
     tts_file = None
     voice_response_file = None
+
 
     try:
         logger.info(f"Получено голосовое сообщение от пользователя {update.effective_user.id}")
@@ -42,8 +50,38 @@ async def handle_voice(update: Update, context: CallbackContext) -> int:
             with sr.AudioFile(wav_file) as source:
                 audio_data = recognizer.record(source)
                 text = recognizer.recognize_google(audio_data, language="ru-RU")
-                response_text = f"Вы сказали: {text}"
+                # response_text = f"Вы сказали: {text}"
                 logger.info(f"Распознанный текст: {text}")
+
+                # Обработка текста
+                user_message = text
+                await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+
+                # Сохраняем сообщение пользователя в историю
+                context.user_data['voice_history'].append({"role": "user", "content": user_message})
+                logger.info(f"Сообщение пользователя {user_message}")
+
+                # Отправляем "обрабатываю"
+                processing_msg = await update.message.reply_text("🤔 Обрабатываю ваш запрос... ⏳")
+
+                # Получаем ответ от GPT, передавая всю историю
+                logger.info(f"История диалога: {context.user_data['voice_history']}")
+
+                # Получаем ответ от GPT, передавая всю историю
+                response_text = await get_chatgpt_response(context.user_data['voice_history'])
+
+                logger.info(f"Получен ответ от ChatGPT: {response_text}")
+
+                # Сохраняем ответ GPT в историю
+                context.user_data['voice_history'].append({"role": "assistant", "content": response_text})
+
+                # Удаляем сообщение пользователя
+                await update.message.delete()
+
+                # Удаляем сообщение о обработке OpenAi
+                await processing_msg.delete()
+
+
         except sr.UnknownValueError:
             response_text = "Не удалось распознать голос. Попробуйте говорить четче."
             logger.warning("Голос не распознан")
@@ -67,6 +105,13 @@ async def handle_voice(update: Update, context: CallbackContext) -> int:
                 await update.message.reply_voice(voice=voice_file)
                 logger.info("Голосовой ответ отправлен")
 
+            # Отправляем меню.
+            response_msg = await update.message.reply_text(
+                f"🤖 <b>ChatGPT отвечает:</b>\n\n{response_text}",
+                parse_mode='HTML',
+                reply_markup=reply_markup
+            )
+
         except Exception as e:
             logger.error(f"Ошибка создания голосового ответа: {e}")
             await update.message.reply_text(response_text)
@@ -85,3 +130,4 @@ async def handle_voice(update: Update, context: CallbackContext) -> int:
                     logger.debug(f"Удален временный файл: {temp_file}")
                 except Exception as e:
                     logger.warning(f"Не удалось удалить файл {temp_file}: {e}")
+        return VOICE_DIALOG

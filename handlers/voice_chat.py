@@ -1,30 +1,27 @@
 from dotenv import load_dotenv
-from telegram.ext import (CommandHandler,
-                          MessageHandler,
-                          filters,
+from telegram.ext import (
                           ConversationHandler,
-                          ApplicationBuilder,
                           CallbackContext, ContextTypes)
 from telegram import Update
 import os
 import logging
+from handlers import basic
 
-from services import voice_recognition
 
 # Настройка логирования
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Состояния диалога
-VOICE_DIALOG = 1
+VOICE_DIALOG: int = 1
 
+# Задаем текст для отправки пользователю.
 CAPTION_VOICE = "Отправьте голосовое сообщение, и я отвечу голосом!"
-
 
 async def start_voice_dialog(update: Update, context: CallbackContext) -> int:
 
     logger.info("Начинает диалог с голосовыми сообщениями.")
-    context.user_data['gpt_history'] = []  # Инициализация истории
+    context.user_data['voice_history'] = []  # Очистка истории
     await send_voice_menu(update, context)
     return VOICE_DIALOG
 
@@ -67,6 +64,42 @@ async def send_voice_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     context.user_data['gpt_message_id'] = sent.message_id
 
 
+async def voice_cancel(update: Update, context: CallbackContext) -> int:
+    """Завершает диалог."""
+    # await update.message.reply_text("Диалог завершен.")
+    await basic.start(update,context)
+    return ConversationHandler.END
+
+
+# def main():
+#     # Подулючаем переменной из окружения ".env"
+#     load_dotenv()
+#     TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+#     if not TELEGRAM_TOKEN:
+#         raise ValueError("Введите TELEGRAM_TOKEN токен в файле .env")
+#     else:
+#         logger.debug("TELEGRAM_TOKEN loaded successfully")
+
+#     # Замените 'YOUR_TOKEN' на ваш токен
+#     application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+
+#     # Создаем ConversationHandler для голосового диалога
+#     voice_conv_handler = ConversationHandler(
+#         entry_points=[CommandHandler('voice', start_voice_dialog)],
+#         states={
+#             VOICE_DIALOG: [
+#                 MessageHandler(filters.VOICE, voice_recognition.handle_voice),
+#             ],
+#         },
+#         fallbacks=[CommandHandler('cancel', cancel)],
+#     )
+
+#     # Добавляем обработчик в приложение
+#     application.add_handler(voice_conv_handler)
+
+#     # Запускаем бота
+#     application.run_polling()
+"""---"""
 # async def handle_voice(update: Update, context: CallbackContext) -> int:
 #     voice = update.message.voice
 #     file = await voice.get_file()
@@ -108,42 +141,7 @@ async def send_voice_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 #
 #     return VOICE_DIALOG
 
+"""---"""
 
-async def cancel(update: Update, context: CallbackContext) -> int:
-    """Завершает диалог."""
-    await update.message.reply_text("Диалог завершен.")
-    return ConversationHandler.END
-
-
-def main():
-    # Подулючаем переменной из окружения ".env"
-    load_dotenv()
-    TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-    if not TELEGRAM_TOKEN:
-        raise ValueError("Введите TELEGRAM_TOKEN токен в файле .env")
-    else:
-        logger.debug("TELEGRAM_TOKEN loaded successfully")
-
-    # Замените 'YOUR_TOKEN' на ваш токен
-    application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-
-    # Создаем ConversationHandler для голосового диалога
-    voice_conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('voice', start_voice_dialog)],
-        states={
-            VOICE_DIALOG: [
-                MessageHandler(filters.VOICE, voice_recognition.handle_voice),
-            ],
-        },
-        fallbacks=[CommandHandler('cancel', cancel)],
-    )
-
-    # Добавляем обработчик в приложение
-    application.add_handler(voice_conv_handler)
-
-    # Запускаем бота
-    application.run_polling()
-
-
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()

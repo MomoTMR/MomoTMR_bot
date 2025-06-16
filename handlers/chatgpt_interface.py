@@ -61,7 +61,7 @@ async def send_gpt_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                 )
         else:
             sent = await query.message.edit_text(
-                text=CAPTION,
+                text=caption,
                 parse_mode='HTML',
             )
         await query.answer()
@@ -70,12 +70,12 @@ async def send_gpt_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             with open(image_path, 'rb') as photo:
                 sent = await update.message.reply_photo(
                     photo=photo,
-                    caption=CAPTION,
+                    caption=caption,
                     parse_mode='HTML',
                 )
         else:
             sent = await update.message.reply_text(
-                CAPTION,
+                caption,
                 parse_mode='HTML',
             )
 

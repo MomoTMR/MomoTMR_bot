@@ -20,8 +20,6 @@ __pycache__/
 venv/
 env/
 
-# API tokens and keys
-openai-token.txt
 
 # Temporary files
 user_photo.jpg

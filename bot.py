@@ -148,7 +148,7 @@ def main():
             },
             fallbacks=[
                 CommandHandler("start", basic.start),
-                CallbackQueryHandler(basic.menu_callback, pattern="^main_menu$")
+                CallbackQueryHandler(voice_chat.voice_cancel, pattern="^(main_menu|voice_stop)$")
             ]
         )
 
