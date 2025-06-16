@@ -37,7 +37,8 @@ def main():
             'gpt': chatgpt_interface.gpt_command,
             'personality': personality_chat.talk_command,
             'quiz': quiz.quiz_command,
-            'translate':translator_chat.translate_command
+            'translate':translator_chat.translate_command,
+            'voice':voice_chat.start_voice_dialog
         }
         for command, handler_func in command_handlers.items():
             application.add_handler(CommandHandler(command, handler_func))

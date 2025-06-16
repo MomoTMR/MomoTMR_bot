@@ -23,6 +23,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_markup
         "• Диалог с личностью - говори с известными людьми\n"
         "• Квиз - проверь свои знания\n"
         "• Переводчик\n\n"
+        "• Голосовой чат\n\n"
         "Выберите функцию из меню ниже:"
     )
     keyboard = [
