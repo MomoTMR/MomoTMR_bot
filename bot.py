@@ -60,7 +60,7 @@ def main():
             },
             fallbacks=[
                 CommandHandler("start", basic.start),
-                CallbackQueryHandler(basic.menu_callback, pattern="^(gpt_finish$|main_menu$)")
+                CallbackQueryHandler(chatgpt_interface.finish_gpt, pattern="^(gpt_finish$|main_menu$)")
             ]
         )
 

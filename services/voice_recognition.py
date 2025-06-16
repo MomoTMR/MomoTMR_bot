@@ -10,6 +10,8 @@ from services.openai_client import get_chatgpt_response
 
 logger = logging.getLogger(__name__)
 
+temp_files = []
+
 # Задаем кнопки для inline keyboard.
 keyboard = [[InlineKeyboardButton("🏠 Вернуться в меню", callback_data="voice_stop")]]
 
@@ -105,6 +107,16 @@ async def handle_voice(update: Update, context: CallbackContext) -> int:
                 await update.message.reply_voice(voice=voice_file)
                 logger.info("Голосовой ответ отправлен")
 
+            # Очищаем временные файлы
+            temp_files = [file_path, wav_file, tts_file, voice_response_file]
+            for temp_file in temp_files:
+                if temp_file and os.path.exists(temp_file):
+                    try:
+                        os.remove(temp_file)
+                        logger.debug(f"Удален временный файл: {temp_file}")
+                    except Exception as e:
+                        logger.warning(f"Не удалось удалить файл {temp_file}: {e}")
+
             # Отправляем меню.
             response_msg = await update.message.reply_text(
                 f"🤖 <b>ChatGPT отвечает:</b>\n\n{response_text}",
@@ -121,13 +133,5 @@ async def handle_voice(update: Update, context: CallbackContext) -> int:
         await update.message.reply_text("Произошла ошибка при обработке голосового сообщения.")
 
     finally:
-        # Очищаем временные файлы
-        temp_files = [file_path, wav_file, tts_file, voice_response_file]
-        for temp_file in temp_files:
-            if temp_file and os.path.exists(temp_file):
-                try:
-                    os.remove(temp_file)
-                    logger.debug(f"Удален временный файл: {temp_file}")
-                except Exception as e:
-                    logger.warning(f"Не удалось удалить файл {temp_file}: {e}")
+
         return VOICE_DIALOG
