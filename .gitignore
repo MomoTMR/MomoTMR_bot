@@ -1,10 +1,72 @@
+# Environment variables
 .env
+
+# IDE files
 .idea/
+.vscode/
+*.swp
+*.swo
+
+# Python cache
 __pycache__/
 *.pyc
-.venv/
-.idea/
-openai-token.txt
-user_photo.jpg
-*.swp
+*.pyo
+*.pyd
+.Python
+*.so
 
+# Virtual environment
+.venv/
+venv/
+env/
+
+
+# Temporary files
+user_photo.jpg
+*.tmp
+*.temp
+
+# Audio files (temporary)
+voice_*.ogg
+voice_*.wav
+response_*.mp3
+response_*.ogg
+test_audio.*
+
+# Logs
+*.log
+logs/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# PyCharm
+.idea/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
