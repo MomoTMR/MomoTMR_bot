@@ -1,3 +1,19 @@
+"""
+Обработчик системы квизов.
+
+Этот модуль реализует conversation handler для проведения квизов по различным темам.
+Поддерживает:
+- Выбор темы квиза из предустановленного списка
+- Генерацию вопросов через ChatGPT для каждой темы
+- Проверку ответов пользователя
+- Ведение статистики правильных/неправильных ответов
+- Возможность смены темы или продолжения квиза
+
+Состояния conversation handler:
+- SELECTING_TOPIC: выбор темы для квиза
+- ANSWERING_QUESTION: ответ на вопросы квиза
+"""
+
 import asyncio
 import logging
 import os
@@ -14,12 +30,31 @@ SELECTING_TOPIC, ANSWERING_QUESTION = range(2)
 
 
 async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка команды /quiz"""
+    """
+    Обработчик команды /quiz - запуск системы квизов.
+
+    Args:
+        update (Update): Объект обновления от Telegram
+        context (ContextTypes.DEFAULT_TYPE): Контекст выполнения
+    """
     logger.info('Обрабатываю нажатие на /quiz')
     await quiz_start(update, context)
 
 
 async def quiz_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Отправляет меню выбора темы квиза.
+
+    Отправляет изображение с описанием доступных тем квиза и inline клавиатурой
+    для выбора темы.
+
+    Args:
+        update (Update): Объект обновления от Telegram
+        context (ContextTypes.DEFAULT_TYPE): Контекст выполнения
+
+    Returns:
+        int: SELECTING_TOPIC для перехода в состояние выбора темы
+    """
     try:
         image_path = "data/images/quiz.png"
         logger.info(f'В квизе используется картинка: {image_path}')
@@ -30,47 +65,60 @@ async def quiz_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "🏛️ <b>История</b> - исторические факты и события\n"
             "🔬 <b>Наука</b> - физика, химия, биология\n"
             "🌍 <b>География</b> - страны, столицы, природа\n"
-            "🎬 <b>Кино</b> - фильмы и актеры\n\n"
-            "Выберите тему:"
+            "🎬 <b>Кино</b> - фильмы, актеры, режиссеры\n\n"
+            "Каждый вопрос имеет 4 варианта ответа!"
         )
 
         keyboard = get_quiz_topics_keyboard()
 
-        if 'quiz_score' not in context.user_data:
-            context.user_data['quiz_score'] = 0
-            context.user_data['quiz_total'] = 0
+        if update.message:
+            await update.message.delete()
 
-        if update.callback_query:
             if os.path.exists(image_path):
-                await update.callback_query.message.delete()
-                with open(image_path, 'rb') as photo:
-                    await context.bot.send_photo(
-                        chat_id=update.callback_query.message.chat_id,
-                        photo=photo,
+                try:
+                    await update.message.reply_photo(
+                        photo=open(image_path, 'rb'),
                         caption=message_text,
                         parse_mode='HTML',
                         reply_markup=keyboard
                     )
-            else:
-                await update.callback_query.edit_message_text(
-                    message_text,
-                    parse_mode='HTML',
-                    reply_markup=keyboard
-                )
-            await update.callback_query.answer()
-
-        else:
-            if os.path.exists(image_path):
-                with open(image_path, 'rb') as photo:
-                    await update.message.reply_photo(
-                        photo=photo,
-                        caption=message_text,
+                except Exception as e:
+                    logger.error(f"Ошибка отправки изображения в квизе: {e}")
+                    await update.message.reply_text(
+                        text=message_text,
                         parse_mode='HTML',
                         reply_markup=keyboard
                     )
             else:
                 await update.message.reply_text(
-                    message_text,
+                    text=message_text,
+                    parse_mode='HTML',
+                    reply_markup=keyboard
+                )
+
+        elif update.callback_query:
+            query = update.callback_query
+            await query.answer()
+
+            if os.path.exists(image_path):
+                try:
+                    await query.message.reply_photo(
+                        photo=open(image_path, 'rb'),
+                        caption=message_text,
+                        parse_mode='HTML',
+                        reply_markup=keyboard
+                    )
+                    await query.message.delete()
+                except Exception as e:
+                    logger.error(f"Ошибка отправки изображения через callback в квизе: {e}")
+                    await query.edit_message_text(
+                        text=message_text,
+                        parse_mode='HTML',
+                        reply_markup=keyboard
+                    )
+            else:
+                await query.edit_message_text(
+                    text=message_text,
                     parse_mode='HTML',
                     reply_markup=keyboard
                 )
@@ -78,265 +126,276 @@ async def quiz_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return SELECTING_TOPIC
 
     except Exception as e:
-        logger.error(f"Ошибка при запуске квиза: {e}")
-        error_text = "😔 Произошла ошибка при запуске квиза. Попробуйте позже."
-
-        if update.callback_query:
-            await update.callback_query.edit_message_text(error_text)
-        else:
-            await update.message.reply_text(error_text)
-
-        return -1
+        logger.error(f"Ошибка в quiz_start: {e}", exc_info=True)
+        return SELECTING_TOPIC
 
 
 async def topic_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработчик выбора темы квиза.
+
+    Сохраняет выбранную тему, инициализирует счетчики и генерирует первый вопрос.
+
+    Args:
+        update (Update): Объект обновления от Telegram
+        context (ContextTypes.DEFAULT_TYPE): Контекст выполнения
+
+    Returns:
+        int: ANSWERING_QUESTION для перехода в состояние ответа на вопросы
+    """
     query = update.callback_query
     await query.answer()
 
     try:
+        # Извлекаем тему из callback_data
         topic_key = query.data.replace("quiz_topic_", "")
         topic_data = get_quiz_topic_data(topic_key)
 
         if not topic_data:
-            if query.message.photo:
-                await query.edit_message_caption("❌ Ошибка: тема не найдена.")
-            else:
-                await query.edit_message_text("❌ Ошибка: тема не найдена.")
-            return -1
+            await query.edit_message_text("❌ Ошибка: тема не найдена")
+            return SELECTING_TOPIC
 
-        context.user_data['current_quiz_topic'] = topic_key
-        context.user_data['quiz_topic_data'] = topic_data
-        processing_text = f"{topic_data['emoji']} Генерирую вопрос по теме {topic_data['name']}... ⏳"
-        if query.message.photo:
-            await query.edit_message_caption(processing_text, parse_mode='HTML')
-        else:
-            await query.edit_message_text(processing_text, parse_mode='HTML')
+        # Сохраняем данные в контексте
+        context.user_data['quiz_topic'] = topic_key
+        context.user_data['topic_data'] = topic_data
+        context.user_data['correct_answers'] = 0
+        context.user_data['total_questions'] = 0
 
-        question = await get_personality_response("Создай вопрос для квиза", topic_data['prompt'])
-        context.user_data['current_question'] = question
+        logger.info(f"Выбрана тема квиза: {topic_key}")
 
-        correct_answer = extract_correct_answer(question)
-        context.user_data['correct_answer'] = correct_answer
-
-        message_text = (
-            f"{topic_data['emoji']} <b>Квиз: {topic_data['name']}</b>\n\n"
-            f"{question}\n\n"
-            f"📊 <b>Счет:</b> {context.user_data['quiz_score']}/{context.user_data['quiz_total']}\n\n"
-            "✍️ Напишите ваш ответ (A, B, C или D):"
-        )
-
-        if query.message.photo:
-            await query.edit_message_caption(
-                caption=message_text,
-                parse_mode='HTML'
-            )
-        else:
-            await query.edit_message_text(
-                text=message_text,
-                parse_mode='HTML'
-            )
+        # Генерируем первый вопрос
+        await generate_question(update, context)
 
         return ANSWERING_QUESTION
 
     except Exception as e:
-        logger.error(f"Ошибка при выборе темы квиза: {e}")
-        try:
-            if query.message.photo:
-                await query.edit_message_caption("😔 Произошла ошибка при генерации вопроса. Попробуйте еще раз.")
-            else:
-                await query.edit_message_text("😔 Произошла ошибка при генерации вопроса. Попробуйте еще раз.")
-        except Exception:
-            await context.bot.send_message(
-                chat_id=query.message.chat_id,
-                text="😔 Произошла ошибка при генерации вопроса. Попробуйте еще раз."
+        logger.error(f"Ошибка в topic_selected: {e}", exc_info=True)
+        await query.edit_message_text("❌ Произошла ошибка. Попробуйте снова.")
+        return SELECTING_TOPIC
+
+
+async def generate_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Генерирует новый вопрос для текущей темы квиза.
+
+    Использует ChatGPT для создания вопроса с 4 вариантами ответа
+    на основе промпта выбранной темы.
+
+    Args:
+        update (Update): Объект обновления от Telegram
+        context (ContextTypes.DEFAULT_TYPE): Контекст с данными темы
+    """
+    try:
+        topic_data = context.user_data.get('topic_data')
+        if not topic_data:
+            await update.callback_query.edit_message_text("❌ Ошибка: тема не найдена")
+            return
+
+        # Показываем индикатор загрузки
+        await update.callback_query.edit_message_text("🤔 Генерирую вопрос... ⏳")
+
+        # Генерируем вопрос через ChatGPT
+        question_response = await get_personality_response("Создай новый вопрос", topic_data['prompt'])
+
+        # Парсим ответ
+        parsed_question = parse_question_response(question_response)
+
+        if not parsed_question:
+            await update.callback_query.edit_message_text(
+                "❌ Ошибка генерации вопроса. Попробуйте еще раз.",
+                reply_markup=get_quiz_continue_keyboard(context.user_data['quiz_topic'])
             )
-        return -1
+            return
+
+        # Сохраняем правильный ответ
+        context.user_data['correct_answer'] = parsed_question['correct_answer']
+        context.user_data['total_questions'] += 1
+
+        # Формируем сообщение с вопросом
+        question_text = (
+            f"📝 <b>Вопрос #{context.user_data['total_questions']}</b>\n\n"
+            f"{parsed_question['question']}\n\n"
+            f"A) {parsed_question['option_a']}\n"
+            f"B) {parsed_question['option_b']}\n"
+            f"C) {parsed_question['option_c']}\n"
+            f"D) {parsed_question['option_d']}\n\n"
+            f"<i>Напишите букву правильного ответа (A, B, C или D)</i>"
+        )
+
+        await update.callback_query.edit_message_text(
+            question_text,
+            parse_mode='HTML'
+        )
+
+    except Exception as e:
+        logger.error(f"Ошибка в generate_question: {e}", exc_info=True)
+        await update.callback_query.edit_message_text(
+            "❌ Произошла ошибка при генерации вопроса.",
+            reply_markup=get_quiz_continue_keyboard(context.user_data.get('quiz_topic', ''))
+        )
+
+
+def parse_question_response(response_text):
+    """
+    Парсит ответ ChatGPT и извлекает компоненты вопроса.
+
+    Args:
+        response_text (str): Ответ от ChatGPT с вопросом
+
+    Returns:
+        dict: Словарь с компонентами вопроса или None при ошибке парсинга
+    """
+    try:
+        lines = response_text.strip().split('\n')
+        question = ""
+        options = {}
+        correct_answer = ""
+
+        for line in lines:
+            line = line.strip()
+            if line.startswith("Вопрос:"):
+                question = line.replace("Вопрос:", "").strip()
+            elif line.startswith("A)"):
+                options['option_a'] = line.replace("A)", "").strip()
+            elif line.startswith("B)"):
+                options['option_b'] = line.replace("B)", "").strip()
+            elif line.startswith("C)"):
+                options['option_c'] = line.replace("C)", "").strip()
+            elif line.startswith("D)"):
+                options['option_d'] = line.replace("D)", "").strip()
+            elif "Правильный ответ:" in line:
+                correct_answer = line.split(":")[-1].strip().upper()
+
+        if question and len(options) == 4 and correct_answer in ['A', 'B', 'C', 'D']:
+            return {
+                'question': question,
+                'correct_answer': correct_answer,
+                **options
+            }
+        else:
+            logger.warning(f"Не удалось распарсить вопрос: {response_text}")
+            return None
+
+    except Exception as e:
+        logger.error(f"Ошибка парсинга вопроса: {e}")
+        return None
 
 
 async def handle_quiz_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработчик ответа пользователя на вопрос квиза.
+
+    Проверяет правильность ответа, обновляет статистику и предлагает
+    продолжить квиз или сменить тему.
+
+    Args:
+        update (Update): Объект обновления от Telegram с ответом пользователя
+        context (ContextTypes.DEFAULT_TYPE): Контекст с данными квиза
+
+    Returns:
+        int: ANSWERING_QUESTION для продолжения квиза
+    """
     try:
         user_answer = update.message.text.strip().upper()
-        correct_answer = context.user_data.get('correct_answer', '').upper()
-        topic_data = context.user_data.get('quiz_topic_data')
-        current_question = context.user_data.get('current_question', '')
+        correct_answer = context.user_data.get('correct_answer')
 
-        if not topic_data or not correct_answer:
+        if user_answer not in ['A', 'B', 'C', 'D']:
             await update.message.reply_text(
-                "❌ Произошла ошибка: данные квиза не найдены. Используйте /quiz для начала."
+                "❓ Пожалуйста, ответьте буквой A, B, C или D"
             )
-            return -1
+            return ANSWERING_QUESTION
 
-        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+        # Проверяем ответ
         is_correct = user_answer == correct_answer
-
-        # Обновляем счетчик
-        context.user_data['quiz_total'] += 1
         if is_correct:
-            context.user_data['quiz_score'] += 1
+            context.user_data['correct_answers'] += 1
 
-        # Отправляем сообщение о том, что проверяем ответ
-        processing_msg = await update.message.reply_text(
-            f"{topic_data['emoji']} Проверяю ответ... ⏳"
-        )
+        # Формируем ответ
+        correct_count = context.user_data.get('correct_answers', 0)
+        total_count = context.user_data.get('total_questions', 0)
 
-        # Получаем детальный анализ ответа от ChatGPT
-        analysis_prompt = f"""Пользователь ответил '{user_answer}' на вопрос:
-        {current_question}
-
-        Правильный ответ: {correct_answer}
-
-        Дай краткое объяснение (2-3 предложения), почему ответ правильный или неправильный, и интересный факт по теме."""
-
-        detailed_response = await get_personality_response(analysis_prompt,
-                                                           "Ты эксперт по квизам, объясняешь ответы понятно и интересно.")
-
-        # Формируем результат
         if is_correct:
-            result_text = f"✅ <b>Правильно!</b>\n\n{detailed_response}"
+            result_text = f"✅ <b>Правильно!</b>"
         else:
-            result_text = f"❌ <b>Неправильно!</b>\n\nПравильный ответ: <b>{correct_answer}</b>\n\n{detailed_response}"
+            result_text = f"❌ <b>Неправильно!</b> Правильный ответ: {correct_answer}"
 
-        # Кнопки для продолжения
-        keyboard = get_quiz_continue_keyboard(context.user_data['current_quiz_topic'])
+        stats_text = f"\n\n📊 <b>Статистика:</b> {correct_count}/{total_count} правильных ответов"
 
-        # Удаляем сообщение об обработке и отправляем результат
-        await processing_msg.delete()
+        # Удаляем сообщение пользователя
+        await update.message.delete()
+
+        # Отправляем результат с меню
         await update.message.reply_text(
-            f"{topic_data['emoji']} <b>Результат квиза</b>\n\n"
-            f"{result_text}\n\n"
-            f"📊 <b>Ваш счет:</b> {context.user_data['quiz_score']}/{context.user_data['quiz_total']}",
+            result_text + stats_text,
             parse_mode='HTML',
-            reply_markup=keyboard
+            reply_markup=get_quiz_continue_keyboard(context.user_data['quiz_topic'])
         )
 
         return ANSWERING_QUESTION
 
     except Exception as e:
-        logger.error(f"Ошибка при обработке ответа квиза: {e}")
-        await update.message.reply_text(
-            "😔 Произошла ошибка при проверке ответа. Попробуйте еще раз."
-        )
+        logger.error(f"Ошибка в handle_quiz_answer: {e}", exc_info=True)
+        await update.message.reply_text("❌ Произошла ошибка при обработке ответа.")
         return ANSWERING_QUESTION
 
 
 async def handle_quiz_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка кнопок в квизе"""
+    """
+    Обработчик callback query для управления квизом.
+
+    Обрабатывает кнопки:
+    - "Ещё вопрос" - генерирует новый вопрос по той же теме
+    - "Сменить тему" - возвращает к выбору темы
+    - "Закончить квиз" - завершает квиз и возвращает в главное меню
+
+    Args:
+        update (Update): Объект обновления от Telegram
+        context (ContextTypes.DEFAULT_TYPE): Контекст выполнения
+
+    Returns:
+        int: Соответствующее состояние в зависимости от выбранного действия
+    """
     query = update.callback_query
     await query.answer()
-    logger.debug(f"Обработка quiz callback: {query.data}")
 
-    try:
-        if query.data.startswith("quiz_continue_"):
-            # Продолжаем с той же темой
-            topic_key = query.data.replace("quiz_continue_", "")
-            logger.info(f"Продолжение квиза с темой: {topic_key}")
+    if query.data.startswith("quiz_continue_"):
+        # Генерируем новый вопрос
+        await generate_question(update, context)
+        return ANSWERING_QUESTION
 
-            context.user_data['current_quiz_topic'] = topic_key
-            context.user_data['quiz_topic_data'] = get_quiz_topic_data(topic_key)
+    elif query.data == "quiz_change_topic":
+        # Смена темы
+        return await quiz_start(update, context)
 
-            # Генерируем новый вопрос для той же темы
-            processing_text = f"{context.user_data['quiz_topic_data']['emoji']} Генерирую новый вопрос... ⏳"
-            if query.message.photo:
-                await query.edit_message_caption(processing_text, parse_mode='HTML')
+    elif query.data == "quiz_finish":
+        # Завершение квиза
+        correct_count = context.user_data.get('correct_answers', 0)
+        total_count = context.user_data.get('total_questions', 0)
+
+        final_text = (
+            f"🏁 <b>Квиз завершен!</b>\n\n"
+            f"📊 <b>Итоговая статистика:</b>\n"
+            f"Правильных ответов: {correct_count}/{total_count}\n"
+        )
+
+        if total_count > 0:
+            percentage = (correct_count / total_count) * 100
+            final_text += f"Процент правильных ответов: {percentage:.1f}%\n\n"
+
+            if percentage >= 80:
+                final_text += "🎉 Отличный результат!"
+            elif percentage >= 60:
+                final_text += "👍 Хороший результат!"
+            elif percentage >= 40:
+                final_text += "👌 Неплохо, но можно лучше!"
             else:
-                await query.edit_message_text(processing_text, parse_mode='HTML')
+                final_text += "📚 Стоит подучиться!"
 
-            question = await get_personality_response("Создай вопрос для квиза",
-                                                      context.user_data['quiz_topic_data']['prompt'])
-            context.user_data['current_question'] = question
-            correct_answer = extract_correct_answer(question)
-            context.user_data['correct_answer'] = correct_answer
+        await query.edit_message_text(final_text, parse_mode='HTML')
 
-            message_text = (
-                f"{context.user_data['quiz_topic_data']['emoji']} <b>Квиз: {context.user_data['quiz_topic_data']['name']}</b>\n\n"
-                f"{question}\n\n"
-                f"📊 <b>Счет:</b> {context.user_data['quiz_score']}/{context.user_data['quiz_total']}\n\n"
-                "✍️ Напишите ваш ответ (A, B, C или D):"
-            )
-
-            if query.message.photo:
-                await query.edit_message_caption(caption=message_text, parse_mode='HTML')
-            else:
-                await query.edit_message_text(text=message_text, parse_mode='HTML')
-
-            return ANSWERING_QUESTION
-
-        elif query.data == "quiz_change_topic":
-            return await quiz_start(update, context)
-
-        elif query.data == "quiz_finish":
-            # Показываем финальный результат
-            score = context.user_data.get('quiz_score', 0)
-            total = context.user_data.get('quiz_total', 0)
-
-            if total > 0:
-                percentage = round((score / total) * 100)
-                if percentage >= 80:
-                    emoji = "🏆"
-                    grade = "Отлично!"
-                elif percentage >= 60:
-                    emoji = "🥈"
-                    grade = "Хорошо!"
-                elif percentage >= 40:
-                    emoji = "🥉"
-                    grade = "Неплохо!"
-                else:
-                    emoji = "📚"
-                    grade = "Есть куда расти!"
-            else:
-                percentage = 0
-                emoji = "🤔"
-                grade = "Попробуйте еще раз!"
-
-            final_text = (
-                f"{emoji} <b>Квиз завершен!</b>\n\n"
-                f"📊 <b>Финальный результат:</b>\n"
-                f"Правильных ответов: {score} из {total}\n"
-                f"Процент: {percentage}%\n\n"
-                f"<b>{grade}</b>\n\n"
-                "Спасибо за участие! 🎉"
-            )
-
-            # Очищаем данные квиза
-            context.user_data.pop('quiz_score', None)
-            context.user_data.pop('quiz_total', None)
-            context.user_data.pop('current_quiz_topic', None)
-            context.user_data.pop('quiz_topic_data', None)
-            context.user_data.pop('current_question', None)
-            context.user_data.pop('correct_answer', None)
-
-            await query.edit_message_text(
-                final_text,
-                parse_mode='HTML',
-                # reply_markup=reply_markup
-            )
-            await asyncio.sleep(3)
-            await basic.start(update, context)
-            return -1
-
-    except Exception as e:
-        logger.error(f"Ошибка в quiz callback: {e}")
-        await query.edit_message_text("😔 Произошла ошибка. Попробуйте еще раз.")
+        context.user_data.clear()
+        await asyncio.sleep(3)
+        await basic.start(update, context)
         return -1
 
-    return -1
-
-
-def extract_correct_answer(question_text):
-    """Извлекает правильный ответ из текста вопроса"""
-    try:
-        lines = question_text.split('\n')
-        for line in lines:
-            if 'правильный ответ' in line.lower():
-                match = re.search(r'[ABCD]', line.upper())
-                if match:
-                    return match.group()
-
-        match = re.search(r'ответ:\s*([ABCD])', question_text.upper())
-        if match:
-            return match.group(1)
-
-        return 'A'  # Fallback
-    except Exception as e:
-        logger.error(f"Ошибка при извлечении правильного ответа: {e}")
-        return 'A'
+    return ANSWERING_QUESTION

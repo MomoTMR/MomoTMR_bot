@@ -1,3 +1,11 @@
+"""
+Модуль для работы с личностями для чата.
+
+Содержит конфигурацию различных личностей (известные люди, персонажи),
+с которыми пользователь может вести диалог через ChatGPT.
+Каждая личность имеет уникальный промпт, имя и эмодзи.
+"""
+
 import logging
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -63,7 +71,12 @@ PERSONALITIES = {
 }
 
 def get_personality_keyboard():
-    """Клавиатура для обработки персонолаьного чата"""
+    """
+    Создает клавиатуру для выбора личности для чата.
+
+    Returns:
+        InlineKeyboardMarkup: Клавиатура с кнопками выбора личностей и возврата в главное меню
+    """
     keyboard = []
     for key, personality in PERSONALITIES.items():
         keyboard.append([
@@ -77,6 +90,14 @@ def get_personality_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def get_personality_data(personality_key):
-    "Получить данные о личности по ключу"
+    """
+    Получить данные о личности по ключу.
+
+    Args:
+        personality_key (str): Ключ личности из словаря PERSONALITIES
+
+    Returns:
+        dict: Данные о личности (name, emoji, prompt) или None если ключ не найден
+    """
     logging.info(f"Собираем данные для вывода личностей ! {personality_key}")
     return PERSONALITIES.get(personality_key)

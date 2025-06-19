@@ -1,3 +1,11 @@
+"""
+Модуль для работы с языками переводчика.
+
+Содержит конфигурацию поддерживаемых языков для функции переводчика бота,
+включая названия языков, эмодзи и промпты для ChatGPT.
+Предоставляет функции для создания клавиатур и получения данных о языках.
+"""
+
 import logging
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -26,8 +34,12 @@ LNG_TRANSLATE = {
 }
 
 def get_translate_keyboard():
-    """Клавиатура для обработки чата c переводами"""
+    """
+    Создает клавиатуру для выбора языка перевода.
 
+    Returns:
+        InlineKeyboardMarkup: Клавиатура с кнопками выбора языков и возврата в главное меню
+    """
     keyboard = []
     for key, languages in LNG_TRANSLATE.items():
         keyboard.append([
@@ -40,6 +52,14 @@ def get_translate_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def get_languages_data(languages_key):
-    "Получить данные о языке перевода по ключу"
-    logging.info(f" Выбран язык {languages_key}")
+    """
+    Получить данные о языке перевода по ключу.
+
+    Args:
+        languages_key (str): Ключ языка из словаря LNG_TRANSLATE
+
+    Returns:
+        dict: Данные о языке (name, emoji, prompt) или None если ключ не найден
+    """
+    logging.info(f"Выбран язык {languages_key}")
     return LNG_TRANSLATE.get(languages_key)

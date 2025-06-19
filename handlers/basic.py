@@ -1,4 +1,13 @@
-"""Файл с хендлерами бота."""
+"""
+Основные обработчики команд Telegram бота.
+
+Этот модуль содержит базовые обработчики для команд бота:
+- Команда /start и главное меню
+- Обработка callback-ов главного меню
+- Создание приветственного интерфейса с inline клавиатурой
+
+Все функции являются асинхронными и работают с telegram.ext framework.
+"""
 
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -9,10 +18,22 @@ from handlers import chatgpt_interface
 logger = logging.getLogger(__name__)
 
 
-
-
-# Срабатывает каждый раз когда бот получает команду /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_markup=None):
+    """
+    Обработчик команды /start и главного меню бота.
+
+    Отправляет приветственное сообщение с inline клавиатурой, содержащей
+    все доступные функции бота. Может быть вызван как через команду /start,
+    так и через callback query.
+
+    Args:
+        update (Update): Объект обновления от Telegram
+        context (ContextTypes.DEFAULT_TYPE): Контекст выполнения команды
+        reply_markup (InlineKeyboardMarkup, optional): Клавиатура для ответа
+
+    Returns:
+        int: -1 для завершения conversation handler
+    """
     logger.info("Команда /start вызвана или fallback")
 
     welcome_text = (
@@ -54,14 +75,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_markup
         return -1
 
 async def menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка нажатий кнопок главного меню"""
+    """
+    Обработчик callback query для главного меню.
+
+    Обрабатывает нажатия кнопок главного меню и выполняет соответствующие действия.
+    Может показывать сообщения о функциях в разработке или возвращать в главное меню.
+
+    Args:
+        update (Update): Объект обновления от Telegram
+        context (ContextTypes.DEFAULT_TYPE): Контекст выполнения callback
+    """
     query = update.callback_query
     logger.info(f"Получен Callback в basic: {query.data}")
     logger.info(f"Текущее состояние: {context.user_data.get('state')}")
 
     await query.answer()
 
-    if query.data in ["quiz_coming_soon"]:
+    if query.data in ["coming_soon"]:
         await query.edit_message_text(
             "🚧 <b>Функция в разработке!</b>\n\n"
             "Эта функция будет добавлена на следующих уроках.\n"

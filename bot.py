@@ -1,3 +1,20 @@
+"""
+Основной модуль Telegram бота MomoTMR.
+
+Этот модуль содержит главную логику запуска бота и регистрации всех обработчиков команд.
+Бот предоставляет следующие функции:
+- Генерация случайных фактов
+- Общение с ChatGPT
+- Диалог с различными личностями
+- Квизы на различные темы
+- Переводчик на разные языки
+- Голосовой чат
+
+Для работы требуется настройка переменных окружения:
+- TELEGRAM_TOKEN: токен Telegram бота
+- CHATGPT_TOKEN: токен OpenAI API
+"""
+
 import logging
 import os
 from dotenv import load_dotenv
@@ -10,14 +27,14 @@ from services import voice_recognition
 
 filterwarnings(action="ignore", message=r".*CallbackQueryHandler", category=PTBUserWarning)
 
-#Включаем логирование.
+# Включаем логирование.
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# Подулючаем переменной из окружения ".env"
+# Подключаем переменной из окружения ".env"
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 if not TELEGRAM_TOKEN:
@@ -26,6 +43,16 @@ else:
     logger.debug("TELEGRAM_TOKEN loaded successfully")
 
 def main():
+    """
+    Основная функция запуска бота.
+
+    Инициализирует Telegram бота, регистрирует все обработчики команд и
+    conversation handlers для различных режимов работы бота.
+
+    Raises:
+        ValueError: Если отсутствует TELEGRAM_TOKEN в переменных окружения
+        Exception: При любых других ошибках инициализации или запуска бота
+    """
     try:
         # Инициализация TELEGRAM_TOKEN
         application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
@@ -46,7 +73,7 @@ def main():
         # Обработка кнопки `Рандомный факт - query.data = random_fact -> random_fact.random_fact_callback`
         application.add_handler(CallbackQueryHandler(random_fact.random_fact_callback, pattern="^random_"))
 
-        #Пеход в режим GPT
+        # Переход в режим GPT
         gpt_conversation = ConversationHandler(
             entry_points=[
                 CommandHandler("gpt", chatgpt_interface.gpt_command),
@@ -64,7 +91,7 @@ def main():
             ]
         )
 
-        #Пеход в режим Personality
+        # Переход в режим Personality
         personality_conversation = ConversationHandler(
             entry_points=[
                 CommandHandler("talk", personality_chat.talk_command),
@@ -137,6 +164,8 @@ def main():
                 CallbackQueryHandler(basic.menu_callback, pattern="^(finish_translate|main_menu$)")
             ]
         )
+
+        # Переход в режим Voice
         voice_conversation = ConversationHandler(
             entry_points=[
                 CommandHandler("voice", voice_chat.start_voice_dialog),
@@ -153,31 +182,17 @@ def main():
             ]
         )
 
-
-        # Обработка кнопки `gpt`
         application.add_handler(gpt_conversation)
-
-        # Обработка кнопки `personality`
         application.add_handler(personality_conversation)
-
-        # Обработка кнопки `quiz`
         application.add_handler(quiz_conversation)
-
-        # Обработка кнопки `translate`
         application.add_handler(translator_conversation)
-
-        # Обработка кнопки `voice`
         application.add_handler(voice_conversation)
+        application.add_handler(CallbackQueryHandler(basic.menu_callback, pattern="^coming_soon$"))
 
-        # Обработчик кнопок "МЕНЮ"
-        # application.add_handler(CallbackQueryHandler(basic.menu_callback))
-        application.add_handler(CallbackQueryHandler(basic.menu_callback, pattern="^halt$"))
-
-        # Запуск обработчика событий
         application.run_polling()
 
     except Exception as e:
         logger.error(f"Ошибка при запуске бота: {e}", exc_info=True)
 
 if __name__ == '__main__':
-        main()
+    main()
