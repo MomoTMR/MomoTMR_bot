@@ -24,16 +24,13 @@ logger = logging.getLogger(__name__)
 
 WAITING_FOR_MESSAGE = 1
 
-# Задаем кнопки для inline keyboard.
 keyboard = [
     [InlineKeyboardButton("💬 Новый диалог с OpenAI", callback_data="gpt_continue")],
     [InlineKeyboardButton("🏠 Вернуться в меню", callback_data="gpt_finish")]
 ]
 
-# Кладем клавиши в переменную reply_markup
 reply_markup = InlineKeyboardMarkup(keyboard)
 
-# Формируем заголовок
 CAPTION = (
     "🤖 <b>ChatGPT Интерфейс</b>\n\n"
     "Напишите любой вопрос или сообщение, и я передам его ChatGPT!\n\n"
@@ -95,7 +92,6 @@ async def send_gpt_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     image_path = "data/images/chatgpt.png"
     caption = CAPTION
 
-    # Удаляем всё лишнее
     if update.message:
         await update.message.delete()
 
@@ -112,7 +108,6 @@ async def send_gpt_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             except Exception as e:
                 logger.error(f"Ошибка отправки изображения: {e}")
 
-        # Фолбэк: отправляем обычное текстовое сообщение
         try:
             sent_message = await query.edit_message_text(text=caption, parse_mode='HTML', reply_markup=reply_markup)
             context.user_data['gpt_message_id'] = sent_message.message_id
@@ -121,7 +116,6 @@ async def send_gpt_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             logger.error(f"Ошибка отправки текста: {e}")
             await query.answer()
     else:
-        # Первый запуск из команды
         if os.path.exists(image_path):
             try:
                 with open(image_path, 'rb') as photo:
@@ -131,7 +125,6 @@ async def send_gpt_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             except Exception as e:
                 logger.error(f"Ошибка отправки изображения: {e}")
 
-        # Фолбэк: отправляем обычное текстовое сообщение
         sent_message = await update.message.reply_text(text=caption, parse_mode='HTML', reply_markup=reply_markup)
         context.user_data['gpt_message_id'] = sent_message.message_id
 
@@ -154,38 +147,21 @@ async def handle_gpt_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
         user_message = update.message.text
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
 
-        # Сохраняем сообщение пользователя в историю
         context.user_data['gpt_history'].append({"role": "user", "content": user_message})
         logger.info(f"Сообщение пользователя {user_message}")
 
-        # Отправляем "обрабатываю"
         processing_msg = await update.message.reply_text("🤔 Обрабатываю ваш запрос... ⏳")
-
-        # Получаем ответ от GPT, передавая всю историю
         logger.info(f"История диалога: {context.user_data['gpt_history']}")
-
-        # Получаем ответ от GPT, передавая всю историю
         response_text = await get_chatgpt_response(context.user_data['gpt_history'])
-
         logger.info(f"Получен ответ от ChatGPT: {response_text}")
-
-        # Сохраняем ответ GPT в историю
         context.user_data['gpt_history'].append({"role": "assistant", "content": response_text})
-
-        # Удаляем сообщение пользователя
         await update.message.delete()
-
-        # Удаляем сообщение о обработке OpenAI
         await processing_msg.delete()
-
-        # Отправляем ответ с меню
         response_msg = await update.message.reply_text(
             f"🤖 <b>ChatGPT отвечает:</b>\n\n{response_text}",
             parse_mode='HTML',
             reply_markup=reply_markup
         )
-
-        # Сохраняем ID сообщения для последующего удаления
         context.user_data['gpt_message_id'] = response_msg.message_id
 
         return WAITING_FOR_MESSAGE
@@ -231,10 +207,7 @@ async def finish_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE, query=N
     """
     query = update.callback_query
     await query.answer()
-
-    # Удалим сохранённые данные (если надо)
     context.user_data.clear()
-
     await asyncio.sleep(3)
     await basic.start(update, context)
     return -1
