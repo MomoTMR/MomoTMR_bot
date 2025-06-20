@@ -13,7 +13,6 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 import asyncio
-from handlers import chatgpt_interface
 
 logger = logging.getLogger(__name__)
 
@@ -57,11 +56,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE, reply_markup
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     try:
-        if update.message:  # Вызов через команду или сообщение
+        if update.message:
             await update.message.reply_text(welcome_text, parse_mode='HTML', reply_markup=reply_markup)
-        elif update.callback_query:  # Вызов через callback
+        elif update.callback_query:
             query = update.callback_query
-            await query.message.delete()  # Удаляем сообщение с кнопкой
+            await query.message.delete()
             await context.bot.send_message(
                 chat_id=query.message.chat_id,
                 text=welcome_text,

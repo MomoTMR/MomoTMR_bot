@@ -195,16 +195,10 @@ async def handle_personality_message(update: Update, context: ContextTypes.DEFAU
             )
             return CHATING_WITH_PERSONALITY
 
-        # Показываем индикатор печати
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
-
-        # Отправляем сообщение о обработке
         processing_msg = await update.message.reply_text("🤔 Обрабатываю ваш запрос... ⏳")
-
-        # Получаем ответ от личности
         response = await get_personality_response(user_message, personality_data['prompt'])
 
-        # Создаем меню для продолжения
         keyboard = [
             # [InlineKeyboardButton("✉️ Продолжить диалог", callback_data="continue_chat")],
             [InlineKeyboardButton("🔄 Сменить личность", callback_data="change_personality")],
@@ -212,15 +206,12 @@ async def handle_personality_message(update: Update, context: ContextTypes.DEFAU
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        # Удаляем сообщение о обработке
         await processing_msg.delete()
-        # Отправляем ответ
         await update.message.reply_text(
             f"{personality_data['emoji']} <b>{personality_data['name']} отвечает:</b>\n\n{response}",
             parse_mode='HTML',
             reply_markup=reply_markup
         )
-
         return CHATING_WITH_PERSONALITY
 
     except Exception as e:

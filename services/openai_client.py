@@ -17,7 +17,6 @@ import os
 
 logger = logging.getLogger(__name__)
 
-# Подключаем переменной из окружения ".env"
 load_dotenv()
 
 CHATGPT_TOKEN = os.getenv("CHATGPT_TOKEN")

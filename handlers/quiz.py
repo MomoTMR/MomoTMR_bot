@@ -17,7 +17,6 @@
 import asyncio
 import logging
 import os
-import re
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from handlers import basic
@@ -266,7 +265,7 @@ def parse_question_response(response_text):
             elif "Правильный ответ:" in line:
                 correct_answer = line.split(":")[-1].strip().upper()
 
-        if question and len(options) == 4 and correct_answer in ['A', 'B', 'C', 'D']:
+        if question and len(options) > 2: # and correct_answer in ['A', 'B', 'C', 'D']:
             return {
                 'question': question,
                 'correct_answer': correct_answer,

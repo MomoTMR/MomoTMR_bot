@@ -14,13 +14,11 @@ from handlers import basic
 
 logger = logging.getLogger(__name__)
 
-# Задаем кнопки для inline keyboard.
 keyboard = [
     [InlineKeyboardButton("🎲 Хочу ещё факт", callback_data="random_more")],
     [InlineKeyboardButton("🏠 Закончить", callback_data="random_finish")]
 ]
 
-# Кладем клавиши в переменную reply_markup
 reply_markup = InlineKeyboardMarkup(keyboard)
 
 async def random_fact(update: Update, context: ContextTypes.DEFAULT_TYPE):

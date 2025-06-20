@@ -137,7 +137,6 @@ async def languages_selected(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await query.answer()
 
     try:
-        # Извлекаем ключ языка из callback_data
         language_key = query.data.replace("languages_", "")
         language = get_languages_data(language_key)
 
@@ -145,11 +144,9 @@ async def languages_selected(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await query.edit_message_text("❌ Ошибка: язык не найден")
             return SELECTION_LANGUAGE
 
-        # Сохраняем данные языка в контексте
         context.user_data['current_language'] = language_key
         context.user_data['language_data'] = language
 
-        # Создаем меню для перевода
         keyboard = [
             [InlineKeyboardButton("📝 Продолжить перевод", callback_data="continue_translate")],
             [InlineKeyboardButton("🔄 Сменить язык", callback_data="change_languages")],
@@ -201,34 +198,20 @@ async def handle_languages_message(update: Update, context: ContextTypes.DEFAULT
                 "❌ Произошла ошибка: язык не выбран. Используйте /translate для начала"
             )
             return CHATING_WITH_TRANSLATOR
-
-        # Показываем индикатор печати
         await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
-
-        # Отправляем сообщение о обработке
         processing_msg = await update.message.reply_text("🔄 Перевожу текст... ⏳")
-
-        # Получаем перевод
         translation = await get_personality_response(user_message, language_data['prompt'])
-
-        # Удаляем сообщение о обработке
         await processing_msg.delete()
-
-        # Создаем меню для продолжения
         keyboard = [
-            # [InlineKeyboardButton("📝 Продолжить перевод", callback_data="continue_translate")],
             [InlineKeyboardButton("🔄 Сменить язык", callback_data="change_languages")],
             [InlineKeyboardButton("🏠 Вернуться в меню", callback_data="finish_translate")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-
-        # Отправляем перевод
         await update.message.reply_text(
             f"{language_data['emoji']} <b>Перевод:</b>\n\n{translation}",
             parse_mode='HTML',
             reply_markup=reply_markup
         )
-
         return CHATING_WITH_TRANSLATOR
 
     except Exception as e:
