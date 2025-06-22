@@ -24,14 +24,11 @@ import os
 import logging
 from handlers import basic
 
-# Настройка логирования
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Состояния диалога
 VOICE_DIALOG: int = 1
 
-# Задаем текст для отправки пользователю.
 CAPTION_VOICE = (
     "🎤 <b>Голосовой чат с ChatGPT</b>\n\n"
     "📱 Отправьте голосовое сообщение, и я отвечу голосом!\n\n"
@@ -76,14 +73,12 @@ async def send_voice_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     image_path = "data/images/voice_chat.png"
     caption = CAPTION_VOICE
 
-    # Создаем клавиатуру для управления
     keyboard = [
         [InlineKeyboardButton("🏠 Вернуться в меню", callback_data="voice_stop")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     try:
-        # Удаляем предыдущее сообщение если есть
         if update.message:
             await update.message.delete()
 
@@ -158,10 +153,6 @@ async def voice_cancel(update: Update, context: CallbackContext) -> int:
         await query.answer()
 
     logger.info("Голосовой диалог завершен пользователем")
-
-    # Очищаем данные пользователя
     context.user_data.clear()
-
-    # Возвращаемся в главное меню
     await basic.start(update, context)
     return ConversationHandler.END

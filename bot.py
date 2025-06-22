@@ -27,14 +27,12 @@ from services import voice_recognition
 
 filterwarnings(action="ignore", message=r".*CallbackQueryHandler", category=PTBUserWarning)
 
-# Включаем логирование.
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# Подключаем переменной из окружения ".env"
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 if not TELEGRAM_TOKEN:
@@ -54,10 +52,8 @@ def main():
         Exception: При любых других ошибках инициализации или запуска бота
     """
     try:
-        # Инициализация TELEGRAM_TOKEN
         application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
-        # Регистрация основных команд бота
         command_handlers = {
             'start': basic.start,
             'random': random_fact.random_fact,
@@ -70,10 +66,8 @@ def main():
         for command, handler_func in command_handlers.items():
             application.add_handler(CommandHandler(command, handler_func))
 
-        # Обработка кнопки `Рандомный факт - query.data = random_fact -> random_fact.random_fact_callback`
         application.add_handler(CallbackQueryHandler(random_fact.random_fact_callback, pattern="^random_"))
 
-        # Переход в режим GPT
         gpt_conversation = ConversationHandler(
             entry_points=[
                 CommandHandler("gpt", chatgpt_interface.gpt_command),
@@ -91,7 +85,6 @@ def main():
             ]
         )
 
-        # Переход в режим Personality
         personality_conversation = ConversationHandler(
             entry_points=[
                 CommandHandler("talk", personality_chat.talk_command),
@@ -115,7 +108,6 @@ def main():
             ]
         )
 
-        # Переход в режим Quiz
         quiz_conversation = ConversationHandler(
             entry_points=[
                 CommandHandler("quiz", quiz.quiz_command),
@@ -141,7 +133,6 @@ def main():
             ]
         )
 
-        # Переход в режим Translate
         translator_conversation = ConversationHandler(
             entry_points=[
                 CommandHandler("translate", translator_chat.translate_command),
@@ -165,7 +156,6 @@ def main():
             ]
         )
 
-        # Переход в режим Voice
         voice_conversation = ConversationHandler(
             entry_points=[
                 CommandHandler("voice", voice_chat.start_voice_dialog),
